@@ -6,7 +6,11 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
-  --font-inter: "Inter", sans-serif;
+
+  /* Variable utilitaire qui combine Geist + fallback système */
+  --font-sans:
+    var(--font-geist), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -18,7 +22,13 @@
 }
 
 body {
-  font-family: var(--font-inter);
+  /* Si tu veux Geist par défaut : */
+  font-family: var(--font-sans);
+
+  /* Si tu préfères Inter par défaut :
+     font-family: var(--font-inter);
+  */
+
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,

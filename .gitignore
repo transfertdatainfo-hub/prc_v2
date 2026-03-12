@@ -41,3 +41,5 @@ Thumbs.db
 
 # Optional: if you use TurboRepo or similar tools
 turbo/
+
+/src/generated/prisma
