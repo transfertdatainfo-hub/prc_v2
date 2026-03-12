@@ -2,22 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Rss, ExternalLink } from "lucide-react";
-
-type RSSFeed = {
-  id: string;
-  title: string;
-  url: string;
-  userId: string;
-  createdAt: Date;
-};
-
-type Article = {
-  title: string;
-  link: string;
-  description: string;
-  pubDate: string;
-  author?: string;
-};
+import ActualitesFilters from "@/components/prc/news-sections/ActualitesFilters";
+import { filterArticles } from "@/lib/filters/newsFilters";
+import { Article } from "@/types/Article";
+import { RSSFeed } from "@/types/RSSFeed";
 
 export default function RSSReaderPage() {
   const [feedUrl, setFeedUrl] = useState("");
@@ -26,6 +14,16 @@ export default function RSSReaderPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingArticles, setLoadingArticles] = useState(false);
+
+  // Nouveaux filtres
+  const [filters, setFilters] = useState({
+    language: "",
+    category: "",
+    canada: false,
+    quebec: false,
+    tunisia: false,
+    portfolio: false,
+  });
 
   // Charger les flux RSS au démarrage
   useEffect(() => {
@@ -111,9 +109,16 @@ export default function RSSReaderPage() {
     }
   };
 
+  // Application du filtre sur les articles
+  const applyFilters = (articles: Article[], filters: any) => {
+    return filterArticles(articles, filters);
+  };
+
+  const filteredArticles = applyFilters(articles, filters);
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Section 1: Barre d'ajout de flux RSS */}
+      {/* Section : Barre d'ajout de flux RSS */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <div className="max-w-7xl mx-auto flex gap-3">
           <input
@@ -135,9 +140,12 @@ export default function RSSReaderPage() {
         </div>
       </div>
 
-      {/* Sections 2 et 3 */}
+      {/* Section : Filtres */}
+      <ActualitesFilters filters={filters} setFilters={setFilters} />
+
+      {/* Sections Liste des flux et liste des article */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Section 2: Liste des flux RSS */}
+        {/* Section : Liste des flux RSS */}
         <div className="w-1/2 bg-white border-r border-gray-200 flex flex-col">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -188,7 +196,7 @@ export default function RSSReaderPage() {
           </div>
         </div>
 
-        {/* Section 3: Articles du flux sélectionné */}
+        {/* Section : Articles du flux sélectionné */}
         <div className="w-1/2 bg-gray-50 flex flex-col">
           <div className="px-6 py-4 bg-white border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800">
@@ -210,35 +218,42 @@ export default function RSSReaderPage() {
               </div>
             ) : (
               <div className="p-4 space-y-3">
-                {articles.map((article, index) => (
-                  <article
-                    key={index}
-                    className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <h3 className="font-medium text-gray-800 mb-2">
-                      {article.title}
-                    </h3>
-                    {article.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-3">
-                        {article.description}
-                      </p>
-                    )}
-                    <div className="flex justify-between items-center text-xs text-gray-500">
-                      <span>
-                        {new Date(article.pubDate).toLocaleDateString("fr-FR")}
-                      </span>
-                      <a
-                        href={article.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
-                      >
-                        Lire plus
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  </article>
-                ))}
+                {filteredArticles.map(
+                  (
+                    article,
+                    index, // Avant était "{articles.map((article, index) => ("
+                  ) => (
+                    <article
+                      key={index}
+                      className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <h3 className="font-medium text-gray-800 mb-2">
+                        {article.title}
+                      </h3>
+                      {article.description && (
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                          {article.description}
+                        </p>
+                      )}
+                      <div className="flex justify-between items-center text-xs text-gray-500">
+                        <span>
+                          {new Date(article.pubDate).toLocaleDateString(
+                            "fr-FR",
+                          )}
+                        </span>
+                        <a
+                          href={article.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                        >
+                          Lire plus
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    </article>
+                  ),
+                )}
               </div>
             )}
           </div>
