@@ -19,6 +19,7 @@ export default function RSSReaderPage() {
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [loadingAllArticles, setLoadingAllArticles] = useState(false);
   const [viewMode, setViewMode] = useState<"all" | "feeds">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [filters, setFilters] = useState({
     language: "",
@@ -194,10 +195,20 @@ export default function RSSReaderPage() {
   };
 
   // Articles filtrés selon le mode
+  const searchFilter = (text: string) => {
+    if (!searchQuery.trim()) return true;
+    const t = searchQuery.toLowerCase();
+    return text.toLowerCase().includes(t);
+  };
+
   const filteredArticles =
     viewMode === "all"
-      ? applyFilters(uniqueArticles, filters) // Utiliser uniqueArticles au lieu de allArticles
-      : applyFilters(articles, filters);
+      ? applyFilters(uniqueArticles, filters).filter(
+          (a) => searchFilter(a.title) || searchFilter(a.description || ""),
+        )
+      : applyFilters(articles, filters).filter(
+          (a) => searchFilter(a.title) || searchFilter(a.description || ""),
+        );
 
   // Statistiques pour l'affichage (avec les doublons pour les stats)
   const getFeedStats = (feedId: string) => {
@@ -354,6 +365,24 @@ export default function RSSReaderPage() {
                     ? `Articles - ${selectedFeed.title}`
                     : "Sélectionnez un flux"}
                 </h2>
+                <div className="relative w-full">
+                  <input
+                    type="text"
+                    placeholder="Rechercher dans les articles..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                  />
+
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto">
@@ -442,6 +471,25 @@ export default function RSSReaderPage() {
                     </p>
                   )}
                 </div>
+              </div>
+
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Rechercher dans les articles..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                />
+
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
               {/* Liste des articles uniques */}
