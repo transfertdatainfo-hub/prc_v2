@@ -6,8 +6,9 @@ import { Plus, Rss, ExternalLink, Newspaper } from "lucide-react";
 import { Article } from "@/types/Article";
 import { RSSFeed } from "@/types/RSSFeed";
 import { filterArticles } from "@/lib/filters/newsFilters";
-
 import ActualitesFilters from "./news-sections/ActualitesFilters";
+import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
 
 export default function RSSReaderPage() {
   const [feedUrl, setFeedUrl] = useState("");
@@ -21,6 +22,7 @@ export default function RSSReaderPage() {
   const [loadingAllArticles, setLoadingAllArticles] = useState(false);
   const [viewMode, setViewMode] = useState<"all" | "feeds">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
 
   const [filters, setFilters] = useState({
     language: "",
@@ -230,6 +232,45 @@ export default function RSSReaderPage() {
     };
   };
 
+  const summarizeArticles = async () => {
+    if (filteredArticles.length === 0) return;
+
+    try {
+      console.log("Envoi de la requête de résumé...");
+      const response = await fetch("/api/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ articles: filteredArticles }),
+      });
+
+      console.log("Status de la réponse:", response.status);
+
+      // Gestion spécifique du 429
+      if (response.status === 429) {
+        const errorData = await response.json();
+        alert(
+          "Trop de demandes. Veuillez attendre quelques secondes avant de réessayer.",
+        );
+        return;
+      }
+
+      // Vérifier si la réponse est OK
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erreur API:", errorText);
+        alert(
+          `Erreur: ${response.status} - ${errorText || "Réponse invalide"}`,
+        );
+        return;
+      }
+
+      // ... le reste du code existant ...
+    } catch (error) {
+      console.error("Erreur complète:", error);
+      alert("Une erreur est survenue lors de la communication avec le serveur");
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Barre d'ajout de flux RSS */}
@@ -289,6 +330,23 @@ export default function RSSReaderPage() {
               <span className="flex items-center gap-2">
                 <Rss className="w-4 h-4" />
                 Par flux RSS
+              </span>
+              {viewMode === "feeds" && (
+                <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setViewMode("feeds")}
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
+                viewMode === "feeds"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Rss className="w-4 h-4" />
+                Par Media
               </span>
               {viewMode === "feeds" && (
                 <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
@@ -360,12 +418,13 @@ export default function RSSReaderPage() {
 
             {/* Colonne de droite - Articles du flux sélectionné */}
             <div className="w-[70%] bg-gray-50 flex flex-col">
-              <div className="px-6 py-4 bg-white border-b border-gray-200">
+              <div className="px-6 py-4 bg-white border-b border-gray-200 flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-800">
                   {selectedFeed
                     ? `Articles - ${selectedFeed.title}`
                     : "Sélectionnez un flux"}
                 </h2>
+
                 <div className="relative w-full group">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
@@ -391,6 +450,15 @@ export default function RSSReaderPage() {
                     </button>
                   )}
                 </div>
+                {selectedFeed && filteredArticles.length > 0 && (
+                  <button
+                    onClick={summarizeArticles}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm flex items-center gap-2 shadow-sm"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Résumer ces articles
+                  </button>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto">
@@ -479,6 +547,15 @@ export default function RSSReaderPage() {
                     </p>
                   )}
                 </div>
+                {filteredArticles.length > 0 && (
+                  <button
+                    onClick={summarizeArticles}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm flex items-center gap-2 shadow-sm"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Résumer ces articles
+                  </button>
+                )}
               </div>
 
               <div className="relative w-full group">
