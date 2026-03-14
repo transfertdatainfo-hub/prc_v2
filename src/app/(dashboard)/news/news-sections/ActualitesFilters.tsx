@@ -1,18 +1,6 @@
 "use client";
 
-type Filters = {
-  language: string;
-  category: string;
-  canada: boolean;
-  quebec: boolean;
-  tunisia: boolean;
-  portfolio: boolean;
-};
-
-type Props = {
-  filters: Filters;
-  setFilters: (f: Filters) => void;
-};
+import { Props } from "@/types/Props";
 
 export default function ActualitesFilters({ filters, setFilters }: Props) {
   return (

@@ -335,23 +335,6 @@ export default function RSSReaderPage() {
                 <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
               )}
             </button>
-
-            <button
-              onClick={() => setViewMode("feeds")}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
-                viewMode === "feeds"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Rss className="w-4 h-4" />
-                Par Media
-              </span>
-              {viewMode === "feeds" && (
-                <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
-              )}
-            </button>
           </div>
         </div>
       </div>

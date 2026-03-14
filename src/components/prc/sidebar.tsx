@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { LineChart, Newspaper, BarChart3, User } from "lucide-react";
+import {
+  LineChart,
+  Newspaper,
+  BarChart3,
+  User,
+  Wallet,
+  LogOut,
+} from "lucide-react";
 
 const items = [
-  { label: "Dashboard", href: "/dashboard", icon: LineChart },
+  { label: "Tableau de bord", href: "/dashboard", icon: LineChart },
   { label: "Actualités", href: "/news", icon: Newspaper },
-  { label: "Indices", href: "/indices", icon: BarChart3 },
-  { label: "Profil", href: "/profil", icon: User },
+  { label: "Portefeuilles", href: "/portefeuilles", icon: Wallet },
+  { label: "Marchés & Indices", href: "/indices", icon: BarChart3 },
+  { label: "Stratégie", href: "/strategy", icon: BarChart3 },
 ];
 
 export function Sidebar() {

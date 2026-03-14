@@ -1,3 +1,3 @@
 export default function Page() {
-  return <div>Indices boursiers</div>;
+  return <div>Marchés et indices boursiers</div>;
 }
