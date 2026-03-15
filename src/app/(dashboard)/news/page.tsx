@@ -1,14 +1,19 @@
 "use client";
 
 import { X, Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Rss, ExternalLink, Newspaper } from "lucide-react";
 import { Article } from "@/types/Article";
 import { RSSFeed } from "@/types/RSSFeed";
 import { filterArticles } from "@/lib/filters/newsFilters";
 import ActualitesFilters from "./news-sections/ActualitesFilters";
-import { useRouter } from "next/navigation";
+//import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
+
+type MediaOption = {
+  value: string;
+  label: string;
+};
 
 export default function RSSReaderPage() {
   const [feedUrl, setFeedUrl] = useState("");
@@ -22,15 +27,27 @@ export default function RSSReaderPage() {
   const [loadingAllArticles, setLoadingAllArticles] = useState(false);
   const [viewMode, setViewMode] = useState<"all" | "feeds">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const router = useRouter();
+  const [mediaOptions, setMediaOptions] = useState<MediaOption[]>([]);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  const [filters, setFilters] = useState({
+  //const router = useRouter();
+
+  const [filters, setFilters] = useState<{
+    language: string;
+    category: string;
+    canada: boolean;
+    quebec: boolean;
+    tunisia: boolean;
+    portfolio: boolean;
+    mediaFilter?: string; // Rendre optionnel avec ?
+  }>({
     language: "",
     category: "",
     canada: false,
     quebec: false,
     tunisia: false,
     portfolio: false,
+    mediaFilter: undefined,
   });
 
   // Charger les flux RSS au démarrage
@@ -51,6 +68,104 @@ export default function RSSReaderPage() {
       fetchArticles(selectedFeed.url);
     }
   }, [viewMode, selectedFeed]);
+
+  // EXTRAIRE LES MÉDIAS UNIQUES DES FEEDS
+  useEffect(() => {
+    if (feeds.length > 0) {
+      console.log("🔍 Feeds reçus:", feeds);
+
+      const uniqueMedia = new Map<string, MediaOption>();
+
+      feeds.forEach((feed) => {
+        try {
+          const url = new URL(feed.url);
+          const domain = url.hostname.replace("www.", "");
+          console.log(`📌 Feed: ${feed.title} | Domaine: ${domain}`);
+
+          if (!uniqueMedia.has(domain)) {
+            // Extraire un nom de média plus lisible depuis le titre
+            let mediaName = feed.title;
+            if (mediaName.includes(" | ")) {
+              mediaName = mediaName.split(" | ")[0];
+            } else if (mediaName.includes(" - ")) {
+              mediaName = mediaName.split(" - ")[0];
+            } else if (mediaName.includes(":")) {
+              mediaName = mediaName.split(":")[0];
+            }
+
+            uniqueMedia.set(domain, {
+              value: domain,
+              label: mediaName.trim() || domain,
+            });
+          }
+        } catch (e) {
+          console.error("❌ Erreur URL pour feed:", feed.url, e);
+        }
+      });
+
+      setMediaOptions(Array.from(uniqueMedia.values()));
+    }
+  }, [feeds]);
+
+  // RÉINITIALISER LE FLUX SÉLECTIONNÉ QUAND LE FILTRE MÉDIA CHANGE
+  useEffect(() => {
+    if (viewMode === "feeds") {
+      console.log("🔄 Filtre média changé, réinitialisation");
+      setSelectedFeed(null); // On met à null pour déclencher la sélection auto
+      setArticles([]);
+    }
+  }, [filters.mediaFilter, viewMode]);
+
+  // FEEDS FILTRÉS PAR MÉDIA (pour le mode feeds)
+  const filteredFeedsByMedia = filters.mediaFilter
+    ? feeds.filter((feed) => {
+        try {
+          const url = new URL(feed.url);
+          const domain = url.hostname.replace("www.", "");
+          const matches = domain === filters.mediaFilter;
+          console.log(
+            `📊 Feed: ${feed.title} | Domaine: ${domain} | Match: ${matches}`,
+          );
+
+          return matches;
+        } catch {
+          console.log(`❌ Erreur parsing URL: ${feed.url}`);
+          return false;
+        }
+      })
+    : feeds;
+
+  // SÉLECTIONNER LE PREMIER FLUX AUTOMATIQUEMENT
+  useEffect(() => {
+    // Uniquement en mode feeds
+    if (viewMode === "feeds") {
+      console.log("🔄 Vérification pour sélection automatique");
+      console.log("filteredFeedsByMedia:", filteredFeedsByMedia.length);
+      console.log("selectedFeed actuel:", selectedFeed?.title);
+
+      // Si on a des flux filtrés ET qu'aucun flux n'est sélectionné
+      if (filteredFeedsByMedia.length > 0 && !selectedFeed) {
+        console.log(
+          "✅ Sélection automatique du premier flux:",
+          filteredFeedsByMedia[0].title,
+        );
+        setSelectedFeed(filteredFeedsByMedia[0]);
+      }
+
+      // Si le flux actuellement sélectionné n'est plus dans la liste filtrée
+      if (selectedFeed && filteredFeedsByMedia.length > 0) {
+        const stillExists = filteredFeedsByMedia.some(
+          (feed) => feed.id === selectedFeed.id,
+        );
+        if (!stillExists) {
+          console.log(
+            "🔄 Flux sélectionné non disponible, sélection du premier",
+          );
+          setSelectedFeed(filteredFeedsByMedia[0]);
+        }
+      }
+    }
+  }, [viewMode, filteredFeedsByMedia, selectedFeed]);
 
   // Fonction pour éliminer les doublons basée sur le titre et la date
   const removeDuplicates = (articles: Article[]): Article[] => {
@@ -204,14 +319,69 @@ export default function RSSReaderPage() {
     return text.toLowerCase().includes(t);
   };
 
-  const filteredArticles =
-    viewMode === "all"
-      ? applyFilters(uniqueArticles, filters).filter(
-          (a) => searchFilter(a.title) || searchFilter(a.description || ""),
-        )
-      : applyFilters(articles, filters).filter(
-          (a) => searchFilter(a.title) || searchFilter(a.description || ""),
-        );
+  // ARTICLES À AFFICHER SELON LE MODE
+  const articlesToDisplay = useMemo(() => {
+    console.log("🔄 Calcul de articlesToDisplay");
+    console.log("viewMode:", viewMode);
+    console.log("filters.mediaFilter:", filters.mediaFilter);
+    console.log("selectedFeed:", selectedFeed?.title);
+
+    // Mode "all" : on prend uniqueArticles filtrés par média
+    if (viewMode === "all") {
+      let baseArticles = uniqueArticles;
+
+      // Filtrer par média si nécessaire
+      if (filters.mediaFilter) {
+        baseArticles = baseArticles.filter((article) => {
+          if (article.feedId) {
+            const feed = feeds.find((f) => f.id === article.feedId);
+            if (feed) {
+              try {
+                const url = new URL(feed.url);
+                const domain = url.hostname.replace("www.", "");
+                return domain === filters.mediaFilter;
+              } catch {
+                return false;
+              }
+            }
+          }
+          return false;
+        });
+      }
+      return baseArticles;
+    }
+
+    // Mode "feeds" : on retourne les articles du flux sélectionné
+    // (sans filtrage par média)
+    return articles;
+  }, [
+    viewMode,
+    uniqueArticles,
+    articles,
+    feeds,
+    filters.mediaFilter,
+    selectedFeed,
+  ]);
+
+  // ARTICLES FILTRÉS (recherche + autres filtres)
+  const filteredArticles = useMemo(() => {
+    console.log(
+      "🔍 filteredArticles avec",
+      articlesToDisplay.length,
+      "articles de base",
+    );
+
+    // Appliquer les filtres (langue, catégorie, intérêts) et la recherche
+    const withFilters = applyFilters(articlesToDisplay, filters);
+
+    // Appliquer la recherche
+    const withSearch = withFilters.filter(
+      (a) => searchFilter(a.title) || searchFilter(a.description || ""),
+    );
+
+    console.log("📊 Résultat final:", withSearch.length, "articles");
+    return withSearch;
+  }, [articlesToDisplay, filters, searchQuery]);
 
   // Statistiques pour l'affichage (avec les doublons pour les stats)
   const getFeedStats = (feedId: string) => {
@@ -340,7 +510,12 @@ export default function RSSReaderPage() {
       </div>
 
       {/* Filtres */}
-      <ActualitesFilters filters={filters} setFilters={setFilters} />
+      <ActualitesFilters
+        filters={filters}
+        setFilters={setFilters}
+        viewMode={viewMode}
+        mediaOptions={mediaOptions}
+      />
 
       {/* Contenu principal */}
       <div className="flex-1 flex overflow-hidden">
@@ -354,16 +529,38 @@ export default function RSSReaderPage() {
                   <Rss className="w-5 h-5" />
                   Mes flux RSS
                 </h2>
+                {filters.mediaFilter && (
+                  <p className="text-sm text-blue-600 mt-1 flex items-center gap-2">
+                    <span>
+                      Filtré par :{" "}
+                      {
+                        mediaOptions.find(
+                          (m) => m.value === filters.mediaFilter,
+                        )?.label
+                      }
+                    </span>
+                    <button
+                      onClick={() =>
+                        setFilters({ ...filters, mediaFilter: undefined })
+                      }
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      ✕
+                    </button>
+                  </p>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto">
-                {feeds.length === 0 ? (
+                {filteredFeedsByMedia.length === 0 ? (
                   <div className="p-6 text-center text-gray-500">
-                    Aucun flux RSS ajouté
+                    {feeds.length === 0
+                      ? "Aucun flux RSS ajouté"
+                      : "Aucun flux pour ce média"}
                   </div>
                 ) : (
                   <div className="p-4 space-y-2">
-                    {feeds.map((feed) => (
+                    {filteredFeedsByMedia.map((feed) => (
                       <div
                         key={feed.id}
                         onClick={() => setSelectedFeed(feed)}
