@@ -2,6 +2,35 @@
 
 import { Props } from "@/types/Props";
 
+// Composant réutilisable pour les filtres de type select
+const FilterSelect = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+}: any) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {label}
+    </label>
+    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 h-[58px] flex items-center">
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full bg-transparent border-none focus:ring-0 text-gray-900 p-0"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((opt: any) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
+);
+
 export default function ActualitesFilters({
   filters,
   setFilters,
@@ -11,145 +40,144 @@ export default function ActualitesFilters({
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
       <div className="max-w-7xl mx-auto">
-        {/* FILTRE MÉDIA - apparaît seulement s'il y a des médias */}
-        {mediaOptions.length > 0 && (
-          <div className="mb-4 pb-4 border-b border-gray-200">
-            <div className="grid grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Filtrer par média
-                </label>
-                <select
-                  value={filters.mediaFilter || ""}
-                  onChange={(e) => {
-                    const newMediaFilter = e.target.value || undefined;
-                    console.log(
-                      "🎯 Nouveau filtre média sélectionné:",
-                      newMediaFilter,
-                    );
-                    setFilters({ ...filters, mediaFilter: newMediaFilter });
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
-                >
-                  <option value="">Tous les médias</option>
-                  {mediaOptions.map((media) => (
-                    <option key={media.value} value={media.value}>
-                      {media.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Indicateur de filtre actif */}
-              {filters.mediaFilter && (
-                <div className="flex items-end pb-2">
-                  <button
-                    onClick={() =>
-                      setFilters({ ...filters, mediaFilter: undefined })
-                    }
-                    className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1"
-                  >
-                    <span>✕ Réinitialiser</span>
-                  </button>
-                </div>
-              )}
+        {/* Filtres sur UNE SEULE LIGNE avec hauteur uniforme */}
+        <div className="grid grid-cols-12 gap-4">
+          {/* FILTRE MÉDIA - Plus large */}
+          {mediaOptions.length > 0 && (
+            <div className="col-span-3">
+              <FilterSelect
+                label="Média"
+                value={filters.mediaFilter || ""}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setFilters({
+                    ...filters,
+                    mediaFilter: e.target.value || undefined,
+                  })
+                }
+                options={mediaOptions}
+                placeholder="Tous les médias"
+              />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Filtres existants (langue, catégorie, intérêts) - INCHANGÉS */}
-        <div className="grid grid-cols-4 gap-4">
           {/* Langue */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Langue
-            </label>
-            <select
+          <div className="col-span-2">
+            <FilterSelect
+              label="Langue"
               value={filters.language}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setFilters({ ...filters, language: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">Toutes</option>
-              <option value="fr">Français</option>
-              <option value="en">Anglais</option>
-              <option value="ar">Arabe</option>
-            </select>
+              options={[
+                { value: "fr", label: "Français" },
+                { value: "en", label: "Anglais" },
+                { value: "ar", label: "Arabe" },
+              ]}
+              placeholder="Toutes"
+            />
           </div>
 
           {/* Catégorie */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Catégorie
-            </label>
-            <select
+          <div className="col-span-2">
+            <FilterSelect
+              label="Catégorie"
               value={filters.category}
-              onChange={(e) =>
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setFilters({ ...filters, category: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="">Toutes</option>
-              <option value="politique">Politique</option>
-              <option value="guerre">Guerre</option>
-              <option value="economie">Économie</option>
-            </select>
+              options={[
+                { value: "politique", label: "Politique" },
+                { value: "guerre", label: "Guerre" },
+                { value: "economie", label: "Économie" },
+              ]}
+              placeholder="Toutes"
+            />
           </div>
 
-          {/* Cases à cocher */}
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          {/* Mes intérêts + Enrôlement - Plus large */}
+          <div className="col-span-5">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Mes intérêts
             </label>
+            <div className="bg-gray-50 p-2 rounded-lg border border-gray-200 h-[58px] flex items-center justify-between">
+              {/* Groupe des checkboxes standards */}
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-sm text-gray-700 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={filters.canada}
+                    onChange={(e) =>
+                      setFilters({ ...filters, canada: e.target.checked })
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  Canada
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-gray-700 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={filters.quebec}
+                    onChange={(e) =>
+                      setFilters({ ...filters, quebec: e.target.checked })
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  Québec
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-gray-700 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={filters.tunisia}
+                    onChange={(e) =>
+                      setFilters({ ...filters, tunisia: e.target.checked })
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  Tunisie
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-gray-700 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={filters.portfolio}
+                    onChange={(e) =>
+                      setFilters({ ...filters, portfolio: e.target.checked })
+                    }
+                    className="rounded border-gray-300"
+                  />
+                  Portefeuille
+                </label>
+              </div>
 
-            <div className="flex items-center gap-6 bg-gray-50 p-3 rounded-lg border border-gray-200">
-              <label className="flex items-center gap-2 text-sm">
+              {/* Séparateur vertical */}
+              <div className="w-px h-8 bg-gray-300 mx-1"></div>
+
+              {/* Enrôlement - séparé à droite */}
+              <label className="flex items-center gap-1.5 text-sm text-gray-700 whitespace-nowrap font-medium px-1">
                 <input
                   type="checkbox"
-                  checked={filters.canada}
+                  checked={filters.maRecherche || false}
                   onChange={(e) =>
-                    setFilters({ ...filters, canada: e.target.checked })
+                    setFilters({ ...filters, maRecherche: e.target.checked })
                   }
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                Canada
-              </label>
-
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={filters.quebec}
-                  onChange={(e) =>
-                    setFilters({ ...filters, quebec: e.target.checked })
-                  }
-                />
-                Québec
-              </label>
-
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={filters.tunisia}
-                  onChange={(e) =>
-                    setFilters({ ...filters, tunisia: e.target.checked })
-                  }
-                />
-                Tunisie
-              </label>
-
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={filters.portfolio}
-                  onChange={(e) =>
-                    setFilters({ ...filters, portfolio: e.target.checked })
-                  }
-                />
-                Mon portefeuille financier
+                Enrôlement
               </label>
             </div>
           </div>
         </div>
+
+        {/* Indicateur de filtre actif */}
+        {filters.mediaFilter && (
+          <div className="mt-2 flex justify-end">
+            <button
+              onClick={() => setFilters({ ...filters, mediaFilter: undefined })}
+              className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1"
+            >
+              <span>✕ Réinitialiser le filtre média</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

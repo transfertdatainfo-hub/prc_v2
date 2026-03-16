@@ -1,14 +1,19 @@
 "use client";
 
-import { X, Search } from "lucide-react";
+import {
+  X,
+  Search,
+  Trash2,
+  Plus,
+  Rss,
+  ExternalLink,
+  Newspaper,
+} from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Rss, ExternalLink, Newspaper } from "lucide-react";
 import { Article } from "@/types/Article";
 import { RSSFeed } from "@/types/RSSFeed";
 import { filterArticles } from "@/lib/filters/newsFilters";
 import ActualitesFilters from "./news-sections/ActualitesFilters";
-//import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
 
 type MediaOption = {
   value: string;
@@ -28,7 +33,6 @@ export default function RSSReaderPage() {
   const [viewMode, setViewMode] = useState<"all" | "feeds">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [mediaOptions, setMediaOptions] = useState<MediaOption[]>([]);
-  const [isInitializing, setIsInitializing] = useState(true);
 
   //const router = useRouter();
 
@@ -402,42 +406,37 @@ export default function RSSReaderPage() {
     };
   };
 
-  const summarizeArticles = async () => {
-    if (filteredArticles.length === 0) return;
+  // Extrait le nom du média depuis le titre
+  const extractMediaName = (title: string): string => {
+    if (!title) return "Flux sans nom";
 
+    let mediaName = title;
+
+    // Supprime les suffixes courants
+    const separators = [" | ", " - ", ":", " — ", " • "];
+    for (const sep of separators) {
+      if (mediaName.includes(sep)) {
+        mediaName = mediaName.split(sep)[0];
+        break;
+      }
+    }
+
+    // Nettoie les espaces
+    mediaName = mediaName.trim();
+
+    // Limite à 45 caractères (un peu plus que avant)
+    return mediaName.length > 45
+      ? mediaName.substring(0, 42) + "..."
+      : mediaName;
+  };
+
+  // Extrait le domaine de l'URL (optionnel)
+  const extractDomain = (url: string): string => {
     try {
-      console.log("Envoi de la requête de résumé...");
-      const response = await fetch("/api/summarize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ articles: filteredArticles }),
-      });
-
-      console.log("Status de la réponse:", response.status);
-
-      // Gestion spécifique du 429
-      if (response.status === 429) {
-        const errorData = await response.json();
-        alert(
-          "Trop de demandes. Veuillez attendre quelques secondes avant de réessayer.",
-        );
-        return;
-      }
-
-      // Vérifier si la réponse est OK
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Erreur API:", errorText);
-        alert(
-          `Erreur: ${response.status} - ${errorText || "Réponse invalide"}`,
-        );
-        return;
-      }
-
-      // ... le reste du code existant ...
-    } catch (error) {
-      console.error("Erreur complète:", error);
-      alert("Une erreur est survenue lors de la communication avec le serveur");
+      const domain = new URL(url).hostname.replace("www.", "");
+      return domain;
+    } catch {
+      return url;
     }
   };
 
@@ -524,7 +523,7 @@ export default function RSSReaderPage() {
           <>
             {/* Colonne de gauche - Liste des flux (largueur 30%)*/}
             <div className="w-[30%] bg-white border-r border-gray-200 flex flex-col">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-6 py-3 border-b border-gray-200 h-[73px] flex items-center">
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                   <Rss className="w-5 h-5" />
                   Mes flux RSS
@@ -564,31 +563,43 @@ export default function RSSReaderPage() {
                       <div
                         key={feed.id}
                         onClick={() => setSelectedFeed(feed)}
-                        className={`p-4 rounded-lg cursor-pointer transition-all ${
+                        className={`p-4 rounded-lg cursor-pointer transition-all group ${
                           selectedFeed?.id === feed.id
                             ? "bg-blue-50 border-2 border-blue-300"
                             : "bg-gray-50 border-2 border-transparent hover:bg-gray-100"
                         }`}
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-800">
-                              {feed.title}
-                            </h3>
-                            <p className="text-sm text-gray-500 truncate">
-                              {feed.url}
-                            </p>
-                          </div>
+                        <div className="flex justify-between items-center">
+                          {/* Titre du flux - prend toute la largeur disponible */}
+                          <h3
+                            className="font-medium text-gray-800 truncate flex-1 pr-2 text-lg"
+                            title={feed.title}
+                          >
+                            {extractMediaName(feed.title)}
+                          </h3>
+
+                          {/* Icône de suppression - apparaît au survol */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteFeed(feed.id);
                             }}
-                            className="ml-2 text-red-500 hover:text-red-700 text-sm font-medium"
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 flex-shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            title="Supprimer ce flux"
                           >
-                            Supprimer
+                            <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
+
+                        {/* Optionnel : afficher un petit indicateur de source */}
+                        {feed.url && (
+                          <p
+                            className="text-base text-gray-400 truncate mt-1"
+                            title={feed.url}
+                          >
+                            {extractDomain(feed.url)}
+                          </p>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -598,47 +609,50 @@ export default function RSSReaderPage() {
 
             {/* Colonne de droite - Articles du flux sélectionné */}
             <div className="w-[70%] bg-gray-50 flex flex-col">
-              <div className="px-6 py-4 bg-white border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {selectedFeed
-                    ? `Articles - ${selectedFeed.title}`
-                    : "Sélectionnez un flux"}
-                </h2>
-
-                <div className="relative w-full group">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher dans les articles..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") {
-                        setSearchQuery("");
+              <div className="px-6 py-3 bg-white border-b border-gray-200 h-[73px] flex items-center">
+                <div className="flex justify-between items-center gap-4 w-full">
+                  {/* Titre avec badge du nombre d'articles */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <h2
+                      className="text-lg font-semibold text-gray-800 truncate"
+                      title={
+                        selectedFeed
+                          ? `Articles - ${selectedFeed.title}`
+                          : "Sélectionnez un flux"
                       }
-                    }}
-                    className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg
-               focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none
-               transition-all duration-150"
-                  />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
+                      {selectedFeed
+                        ? `Articles - ${selectedFeed.title}`
+                        : "Sélectionnez un flux"}
+                    </h2>
+                    {selectedFeed && filteredArticles.length > 0 && (
+                      <span className="flex-shrink-0 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                        {filteredArticles.length}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Barre de recherche - largeur fixe */}
+                  <div className="relative w-80 flex-shrink-0">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Rechercher..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-8 py-1.5 text-sm border border-gray-300 rounded-lg
+             focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {selectedFeed && filteredArticles.length > 0 && (
-                  <button
-                    onClick={summarizeArticles}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm flex items-center gap-2 shadow-sm"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Résumer ces articles
-                  </button>
-                )}
               </div>
 
               <div className="flex-1 overflow-y-auto">
@@ -661,7 +675,7 @@ export default function RSSReaderPage() {
                         key={index}
                         className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow"
                       >
-                        <h3 className="font-medium text-gray-800 mb-2">
+                        <h3 className="font-medium text-gray-800 mb-2 text-lg">
                           {article.title}
                         </h3>
                         {article.description && (
@@ -727,15 +741,6 @@ export default function RSSReaderPage() {
                     </p>
                   )}
                 </div>
-                {filteredArticles.length > 0 && (
-                  <button
-                    onClick={summarizeArticles}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm flex items-center gap-2 shadow-sm"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Résumer ces articles
-                  </button>
-                )}
               </div>
 
               <div className="relative w-full group">

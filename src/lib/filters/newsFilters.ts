@@ -1,11 +1,9 @@
 // Fonction de filtrage (placeholder)
 import { Article } from "@/types/Article"
 
-
 export function filterArticles(articles: Article[], filters: any) {
 
     let result = [...articles];
-    
     
     // Détection basique de la langue
       const isArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
@@ -35,6 +33,10 @@ export function filterArticles(articles: Article[], filters: any) {
         /(bourse|marché|finance|portefeuille|investissement|actions|obligations|nasdaq|tsx|dow jones)/i.test(
           text,
         );
+
+      // NOUVEAU : Détection pour "Ma recherche" (Iran et Guerre)
+      const matchMaRecherche = (text: string) =>
+        /(iran|téhéran|teheran|perse|khomeini|pasdaran|garde révolutionnaire|guerre|armée|conflit|attaque|bombardement|missile|escalade|nucléaire)/i.test(text);
   
     // Filtre langue
     if (filters.language) {
@@ -48,6 +50,7 @@ export function filterArticles(articles: Article[], filters: any) {
         return true;
       });
     }
+    
     // Filtre catégorie
     if (filters.category) {
       result = result.filter((a) => {
@@ -61,6 +64,14 @@ export function filterArticles(articles: Article[], filters: any) {
       });
     }
 
+    // NOUVEAU : Filtre "Ma recherche"
+    if (filters.maRecherche) {
+      result = result.filter((a) => {
+        const text = `${a.title} ${a.description || ""}`.toLowerCase();
+        return matchMaRecherche(text);
+      });
+    }
+
     // Filtre "Mes intérêts"
     if (
       filters.canada ||
@@ -71,12 +82,14 @@ export function filterArticles(articles: Article[], filters: any) {
       result = result.filter((a) => {
         const text = `${a.title} ${a.description || ""}`.toLowerCase();
 
-        if (filters.canada && matchCanada(text)) return true;
-        if (filters.quebec && matchQuebec(text)) return true;
-        if (filters.tunisia && matchTunisia(text)) return true;
-        if (filters.portfolio && matchPortfolio(text)) return true;
+        // Si plusieurs intérêts sont cochés, l'article doit correspondre à au moins un
+        const matches = [];
+        if (filters.canada) matches.push(matchCanada(text));
+        if (filters.quebec) matches.push(matchQuebec(text));
+        if (filters.tunisia) matches.push(matchTunisia(text));
+        if (filters.portfolio) matches.push(matchPortfolio(text));
 
-        return false;
+        return matches.some(match => match === true);
       });
     }
 

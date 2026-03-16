@@ -7,4 +7,5 @@ export type Filters = {
   tunisia: boolean;
   portfolio: boolean;
   mediaFilter?: string; 
+  maRecherche: boolean;
 };
