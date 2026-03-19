@@ -77,13 +77,12 @@ export default function RSSReaderPage() {
           .then((res) => res.json())
           .then((articles) =>
             articles.map((article: Article) => ({
-              ...article,
+              ...article, // ✅ Les champs hasFullContent et isPaywalled sont déjà inclus !
               feedTitle: feed.title,
               feedId: feed.id,
             })),
           ),
       );
-
       const articlesArrays = await Promise.all(articlesPromises);
       const allArticlesFlattened = articlesArrays.flat();
 
@@ -105,6 +104,10 @@ export default function RSSReaderPage() {
       setLoadingAllArticles(false);
     }
   }, [feeds]); // ⚠️ IMPORTANT: cette dépendance [feeds] est cruciale
+
+  useEffect(() => {
+    console.log("📊 Premier article enrichi:", uniqueArticles[0]);
+  }, [uniqueArticles]);
 
   // Charger les flux RSS au démarrage
   useEffect(() => {
@@ -282,7 +285,7 @@ export default function RSSReaderPage() {
         `/api/rss-feeds/articles?url=${encodeURIComponent(feedUrl)}`,
       );
       const data = await response.json();
-      setArticles(data);
+      setArticles(data); // ✅ Les données sont déjà enrichies par l'API
     } catch (error) {
       console.error("Erreur lors du chargement des articles:", error);
       setArticles([]);

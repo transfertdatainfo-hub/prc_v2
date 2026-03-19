@@ -1,8 +1,7 @@
 "use client";
 
 import { Article } from "@/types/Article";
-import { Search, X, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { Search, X, ExternalLink, FileText, DollarSign } from "lucide-react";
 
 interface AllViewProps {
   articles: Article[];
@@ -91,21 +90,51 @@ export default function AllView({
                 key={`${article.feedId}-${article.link}-${index}`}
                 className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               >
-                {article.feedTitle && (
-                  <div className="flex items-center gap-2 mb-3">
+                {/* En-tête avec le nom du flux ET les badges */}
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  {/* Nom du flux */}
+                  {article.feedTitle && (
                     <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
                       {article.feedTitle}
                     </span>
-                  </div>
-                )}
+                  )}
+
+                  {/* Badge CONTENU - si l'article a le contenu complet */}
+                  {article.hasFullContent && (
+                    <span
+                      className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full"
+                      title="Contenu complet disponible"
+                    >
+                      <FileText className="w-3 h-3" />
+                      <span>Contenu</span>
+                    </span>
+                  )}
+
+                  {/* Badge PAYANT - si l'article est payant */}
+                  {article.isPaywalled && (
+                    <span
+                      className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full"
+                      title="Article payant"
+                    >
+                      <DollarSign className="w-3 h-3" />
+                      <span>Payant</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Titre de l'article */}
                 <h2 className="text-xl font-semibold text-gray-800 mb-3">
                   {article.title}
                 </h2>
+
+                {/* Description (si existe) */}
                 {article.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3">
                     {article.description}
                   </p>
                 )}
+
+                {/* Pied de l'article (date et lien) */}
                 <div className="flex justify-between items-center text-sm text-gray-500 border-t pt-4">
                   <span>
                     {new Date(article.pubDate).toLocaleDateString("fr-FR", {
