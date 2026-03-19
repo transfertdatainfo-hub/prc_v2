@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Newspaper,
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Article } from "@/types/Article";
 import { RSSFeed } from "@/types/RSSFeed";
 import { filterArticles } from "@/lib/filters/newsFilters";
@@ -17,6 +17,7 @@ import ActualitesFilters from "./news-sections/ActualitesFilters";
 import CategoryView from "./news-sections/CategoryView";
 import AllView from "./news-sections/AllViews";
 import FeedsView from "./news-sections/FeedsView";
+import { InterestFilter } from "@/types/InterestFilter";
 
 type MediaOption = {
   value: string;
@@ -38,32 +39,80 @@ export default function RSSReaderPage() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [mediaOptions, setMediaOptions] = useState<MediaOption[]>([]);
+  const [interestFilters, setInterestFilters] = useState<InterestFilter[]>([]);
+  const [preparedFilters, setPreparedFilters] = useState<
+    { id: string; keywords: string[] }[]
+  >([]);
 
   //const router = useRouter();
 
   const [filters, setFilters] = useState<{
     language: string;
     category: string;
-    canada: boolean;
-    quebec: boolean;
-    tunisia: boolean;
-    portfolio: boolean;
     mediaFilter?: string;
-    maRecherche: boolean;
+    activeInterestFilters: string[];
   }>({
     language: "",
     category: "",
-    canada: false,
-    quebec: false,
-    tunisia: false,
-    portfolio: false,
     mediaFilter: undefined,
-    maRecherche: false,
+    activeInterestFilters: [],
   });
+
+  const fetchInterestFilters = async () => {
+    try {
+      const response = await fetch("/api/interest-filters");
+      const data = await response.json();
+      setInterestFilters(data); // Garde les données complètes si besoin ailleurs
+      setPreparedFilters(prepareFiltersForEngine(data)); // ✅ Nouvel état pour le moteur
+    } catch (error) {
+      console.error("Erreur chargement filtres intérêts:", error);
+    }
+  };
+
+  const fetchAllArticles = useCallback(async () => {
+    setLoadingAllArticles(true);
+    try {
+      const articlesPromises = feeds.map((feed) =>
+        fetch(`/api/rss-feeds/articles?url=${encodeURIComponent(feed.url)}`)
+          .then((res) => res.json())
+          .then((articles) =>
+            articles.map((article: Article) => ({
+              ...article,
+              feedTitle: feed.title,
+              feedId: feed.id,
+            })),
+          ),
+      );
+
+      const articlesArrays = await Promise.all(articlesPromises);
+      const allArticlesFlattened = articlesArrays.flat();
+
+      // Trier par date (du plus récent au plus ancien)
+      const sortedArticles = allArticlesFlattened.sort(
+        (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime(),
+      );
+
+      setAllArticles(sortedArticles);
+
+      // Éliminer les doublons
+      const unique = removeDuplicates(sortedArticles);
+      setUniqueArticles(unique);
+    } catch (error) {
+      console.error("Erreur lors du chargement de tous les articles:", error);
+      setAllArticles([]);
+      setUniqueArticles([]);
+    } finally {
+      setLoadingAllArticles(false);
+    }
+  }, [feeds]); // ⚠️ IMPORTANT: cette dépendance [feeds] est cruciale
 
   // Charger les flux RSS au démarrage
   useEffect(() => {
     fetchFeeds();
+  }, []);
+
+  useEffect(() => {
+    fetchInterestFilters();
   }, []);
 
   // Charger tous les articles quand on est en mode "all"
@@ -126,6 +175,14 @@ export default function RSSReaderPage() {
       setArticles([]);
     }
   }, [filters.mediaFilter, viewMode]);
+
+  // Transforme les InterestFilter (avec Keyword[]) en format simple pour le filtrage
+  const prepareFiltersForEngine = (filters: InterestFilter[]) => {
+    return filters.map((filter) => ({
+      id: filter.id,
+      keywords: filter.keywords.map((k) => k.word), // ✅ Ne garde que les mots
+    }));
+  };
 
   // FEEDS FILTRÉS PAR MÉDIA (pour le mode feeds)
   const filteredFeedsByMedia = filters.mediaFilter
@@ -218,43 +275,6 @@ export default function RSSReaderPage() {
     }
   };
 
-  const fetchAllArticles = async () => {
-    setLoadingAllArticles(true);
-    try {
-      const articlesPromises = feeds.map((feed) =>
-        fetch(`/api/rss-feeds/articles?url=${encodeURIComponent(feed.url)}`)
-          .then((res) => res.json())
-          .then((articles) =>
-            articles.map((article: Article) => ({
-              ...article,
-              feedTitle: feed.title,
-              feedId: feed.id,
-            })),
-          ),
-      );
-
-      const articlesArrays = await Promise.all(articlesPromises);
-      const allArticlesFlattened = articlesArrays.flat();
-
-      // Trier par date (du plus récent au plus ancien)
-      const sortedArticles = allArticlesFlattened.sort(
-        (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime(),
-      );
-
-      setAllArticles(sortedArticles);
-
-      // Éliminer les doublons
-      const unique = removeDuplicates(sortedArticles);
-      setUniqueArticles(unique);
-    } catch (error) {
-      console.error("Erreur lors du chargement de tous les articles:", error);
-      setAllArticles([]);
-      setUniqueArticles([]);
-    } finally {
-      setLoadingAllArticles(false);
-    }
-  };
-
   const fetchArticles = async (feedUrl: string) => {
     setLoadingArticles(true);
     try {
@@ -320,7 +340,7 @@ export default function RSSReaderPage() {
   };
 
   const applyFilters = (articles: Article[], filters: any) => {
-    return filterArticles(articles, filters);
+    return filterArticles(articles, filters, preparedFilters); // ✅ Utilise preparedFilters
   };
 
   // Articles filtrés selon le mode
@@ -391,7 +411,7 @@ export default function RSSReaderPage() {
 
     console.log("📊 Résultat final:", withSearch.length, "articles");
     return withSearch;
-  }, [articlesToDisplay, filters, searchQuery]);
+  }, [articlesToDisplay, filters, applyFilters, searchFilter]);
 
   // Statistiques pour l'affichage (avec les doublons pour les stats)
   const getFeedStats = (feedId: string) => {

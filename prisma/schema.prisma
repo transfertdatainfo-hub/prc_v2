@@ -1,19 +1,22 @@
+// prisma/schema.prisma
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client-js" // Important : c'est "-js" en v5
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL") // L'URL revient dans le schéma
 }
 
+// VOS MODÈLES RESTENT EXACTEMENT LES MÊMES
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  rssFeeds  RSSFeed[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String?
+  rssFeeds        RSSFeed[]
+  interestFilters InterestFilter[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model RSSFeed {
@@ -24,4 +27,30 @@ model RSSFeed {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// NOUVEAU : Modèle pour les filtres d'intérêts personnalisés
+model InterestFilter {
+  id        String    @id @default(cuid())
+  label     String // Ex: "Enrôlement Canada", "Guerre Ukraine"
+  userId    String // Pour plus tard quand tu auras l'auth
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keywords  Keyword[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, label]) // Évite les doublons de nom pour un même user
+  @@map("interest_filters")
+}
+
+// NOUVEAU : Modèle pour les mots-clés associés à un filtre
+model Keyword {
+  id        String         @id @default(cuid())
+  word      String // Le mot-clé lui-même
+  filterId  String
+  filter    InterestFilter @relation(fields: [filterId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+
+  @@unique([filterId, word]) // Évite les doublons de mots-clés dans un même filtre
+  @@map("keywords")
 }

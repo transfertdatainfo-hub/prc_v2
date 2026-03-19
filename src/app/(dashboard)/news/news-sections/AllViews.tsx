@@ -40,7 +40,8 @@ export default function AllView({
             {allArticles.length > uniqueArticles.length && (
               <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
                 {allArticles.length - uniqueArticles.length} doublon
-                {allArticles.length - uniqueArticles.length > 1 ? "s" : ""} supprimé
+                {allArticles.length - uniqueArticles.length > 1 ? "s" : ""}{" "}
+                supprimé
                 {allArticles.length - uniqueArticles.length > 1 ? "s" : ""}
               </p>
             )}
@@ -121,7 +122,7 @@ export default function AllView({
                     rel="noopener noreferrer"
                     className="text-blue-500 hover:text-blue-700 flex items-center gap-1 font-medium"
                   >
-                    Lire l'article complet
+                    Lire l&apos;article complet
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 </div>
