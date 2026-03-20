@@ -1,3 +1,5 @@
+// src\app\(dashboard)\layout.tsx
+
 import { Sidebar } from "@/components/prc/sidebar";
 import { Topbar } from "@/components/prc/topbar";
 

@@ -1,4 +1,4 @@
-// Déclaration globale pour stocker les résumés en mémoire
+// src\types\global.d.ts
 
 declare global {
   // eslint-disable-next-line no-var

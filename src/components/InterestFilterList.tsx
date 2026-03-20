@@ -1,4 +1,5 @@
-// src/components/InterestFilterList.tsx
+// src\components\InterestFilterList.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";

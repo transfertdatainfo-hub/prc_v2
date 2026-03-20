@@ -1,7 +1,17 @@
+// src\app\(dashboard)\news\news-sections\AllViews.tsx
+
 "use client";
 
 import { Article } from "@/types/Article";
-import { Search, X, ExternalLink, FileText, DollarSign } from "lucide-react";
+import {
+  Search,
+  X,
+  ExternalLink,
+  FileText,
+  DollarSign,
+  Gift,
+} from "lucide-react";
+import { Filters } from "@/types/Filters";
 
 interface AllViewProps {
   articles: Article[];
@@ -11,6 +21,7 @@ interface AllViewProps {
   loading?: boolean;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  filters?: Filters;
 }
 
 export default function AllView({
@@ -21,6 +32,13 @@ export default function AllView({
   loading,
   searchQuery,
   setSearchQuery,
+  filters = {
+    language: "",
+    category: "",
+    activeInterestFilters: [],
+    showPaywallOnly: false,
+    showContentOnly: false,
+  },
 }: AllViewProps) {
   return (
     <div className="flex-1 bg-gray-50 overflow-y-auto">
@@ -30,21 +48,48 @@ export default function AllView({
           <h1 className="text-2xl font-bold text-gray-800">
             Tous les articles
           </h1>
-          <div className="flex items-center gap-4 mt-1">
+
+          {/* Indicateurs de filtres actifs - NOUVEAU */}
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
             <p className="text-sm text-gray-500">
               {filteredArticles.length} article
               {filteredArticles.length > 1 ? "s" : ""} unique
               {filteredArticles.length > 1 ? "s" : ""}
             </p>
-            {allArticles.length > uniqueArticles.length && (
-              <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+
+            {filters.showContentOnly && (
+              <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                <FileText className="w-3 h-3" />
+                Avec contenu
+              </span>
+            )}
+
+            {filters.showFreeOnly && (
+              <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                <Gift className="w-3 h-3" />
+                Gratuits
+              </span>
+            )}
+
+            {filters.showPaywallOnly && (
+              <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                <DollarSign className="w-3 h-3" />
+                Payants
+              </span>
+            )}
+          </div>
+
+          {/* Information sur les doublons */}
+          {allArticles.length > uniqueArticles.length && (
+            <div className="mt-1">
+              <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded inline-block">
                 {allArticles.length - uniqueArticles.length} doublon
                 {allArticles.length - uniqueArticles.length > 1 ? "s" : ""}{" "}
                 supprimé
                 {allArticles.length - uniqueArticles.length > 1 ? "s" : ""}
               </p>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Barre de recherche */}

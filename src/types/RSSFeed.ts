@@ -1,3 +1,5 @@
+// src\types\RSSFeed.ts
+
 export type RSSFeed = {
   id: string;
   title: string;

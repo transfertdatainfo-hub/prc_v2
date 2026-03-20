@@ -1,3 +1,5 @@
+// src\app\(public)\page.tsx
+
 import Image from "next/image";
 import { PRCButton } from "@/components/prc/button";
 import { PRCCard } from "@/components/prc/card";

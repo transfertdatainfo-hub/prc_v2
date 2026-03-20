@@ -1,3 +1,4 @@
+// src\types\Props.ts
 
 import { Filters } from "./Filters";
 

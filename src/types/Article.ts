@@ -1,3 +1,5 @@
+// src\types\Article.ts
+
 export type Article = {
   title: string;
   link: string;

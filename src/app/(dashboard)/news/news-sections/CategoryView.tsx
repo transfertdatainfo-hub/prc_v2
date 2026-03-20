@@ -1,3 +1,5 @@
+// src\app\(dashboard)\news\news-sections\CategoryView.tsx
+
 "use client";
 
 import { Article } from "@/types/Article";

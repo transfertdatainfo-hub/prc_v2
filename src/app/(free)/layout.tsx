@@ -1,3 +1,5 @@
+// src\app\(free)\layout.tsx
+
 import { FreeHeader } from "@/components/prc/free-header";
 
 export default function FreeLayout({

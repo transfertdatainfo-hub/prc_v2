@@ -1,4 +1,5 @@
 // src/app/(dashboard)/news/filters-config/page.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";

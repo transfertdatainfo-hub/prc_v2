@@ -1,3 +1,4 @@
+// src\config\theme.ts
 
 export const theme = {
   colors: {

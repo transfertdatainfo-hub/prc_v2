@@ -1,3 +1,5 @@
+// src\app\api\interest-filters\[id]\route.ts
+
 // src/app/api/interest-filters/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';

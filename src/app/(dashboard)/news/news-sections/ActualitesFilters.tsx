@@ -1,9 +1,12 @@
 // src/app/(dashboard)/news/news-sections/ActualitesFilters.tsx
+
 "use client";
 
 import { Props } from "@/types/Props";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { FileText, Gift, Lock } from "lucide-react";
+import { ToggleSwitch } from "@/components/prc/ToggleSwitch";
 
 // Composant réutilisable pour les filtres de type select
 const FilterSelect = ({
@@ -57,16 +60,11 @@ export default function ActualitesFilters({
     fetchInterestFilters();
   }, []);
 
-  // Gestionnaire pour activer/désactiver un filtre personnalisé
+  // Gestionnaire pour activer un filtre personnalisé (remplace l'ancien)
   const handleFilterChange = (filterId: string) => {
-    const current = filters.activeInterestFilters || [];
-    const newActive = current.includes(filterId)
-      ? current.filter((id) => id !== filterId)
-      : [...current, filterId];
-
     setFilters({
       ...filters,
-      activeInterestFilters: newActive,
+      activeInterestFilters: [filterId], // ← Un seul filtre à la fois
     });
   };
 
@@ -78,6 +76,28 @@ export default function ActualitesFilters({
       label: filter.label,
     })),
   ];
+
+  // Fonction pour gérer le toggle Gratuit avec exclusion mutuelle
+  const handleFreeToggle = () => {
+    // Si on active Gratuit (actuellement false), on désactive Payant
+    // Si on désactive Gratuit (actuellement true), on ne change que Gratuit
+    setFilters({
+      ...filters,
+      showFreeOnly: !filters.showFreeOnly,
+      showPaywallOnly: !filters.showFreeOnly ? false : filters.showPaywallOnly,
+    });
+  };
+
+  // Fonction pour gérer le toggle Payant avec exclusion mutuelle
+  const handlePaywallToggle = () => {
+    // Si on active Payant (actuellement false), on désactive Gratuit
+    // Si on désactive Payant (actuellement true), on ne change que Payant
+    setFilters({
+      ...filters,
+      showPaywallOnly: !filters.showPaywallOnly,
+      showFreeOnly: !filters.showPaywallOnly ? false : filters.showFreeOnly,
+    });
+  };
 
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
@@ -143,8 +163,23 @@ export default function ActualitesFilters({
               {/* Combobox avec flèche */}
               <div className="relative flex-1">
                 <select
-                  value={filters.activeInterestFilters?.[0] || ""}
-                  onChange={(e) => handleFilterChange(e.target.value)}
+                  value={
+                    filters.activeInterestFilters?.length
+                      ? filters.activeInterestFilters[0]
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const selectedValue = e.target.value;
+                    if (selectedValue === "") {
+                      // Si "Aucun filtre" est sélectionné, vider tous les filtres actifs
+                      setFilters({
+                        ...filters,
+                        activeInterestFilters: [],
+                      });
+                    } else {
+                      handleFilterChange(selectedValue);
+                    }
+                  }}
                   className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-lg text-gray-900 p-3 pr-10 h-[58px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {filterOptions.map((opt) => (
@@ -177,7 +212,7 @@ export default function ActualitesFilters({
                 }
               >
                 {interestFilters.length === 0 ? (
-                  // ✅ ICONE VIDE (image 1)
+                  // ✅ ICONE VIDE
                   <svg
                     width="28"
                     height="28"
@@ -190,15 +225,13 @@ export default function ActualitesFilters({
                   >
                     <line x1="4" y1="6" x2="20" y2="6" />
                     <circle cx="10" cy="6" r="2" />
-
                     <line x1="4" y1="12" x2="20" y2="12" />
                     <circle cx="15" cy="12" r="2" />
-
                     <line x1="4" y1="18" x2="20" y2="18" />
                     <circle cx="7" cy="18" r="2" />
                   </svg>
                 ) : (
-                  // ✅ ICONE PLEINE (image 2)
+                  // ✅ ICONE PLEINE
                   <svg
                     width="28"
                     height="28"
@@ -211,15 +244,51 @@ export default function ActualitesFilters({
                   >
                     <line x1="4" y1="6" x2="20" y2="6" stroke="#9CA3AF" />
                     <circle cx="10" cy="6" r="2" />
-
                     <line x1="4" y1="12" x2="20" y2="12" stroke="#9CA3AF" />
                     <circle cx="15" cy="12" r="2" />
-
                     <line x1="4" y1="18" x2="20" y2="18" stroke="#9CA3AF" />
                     <circle cx="7" cy="18" r="2" />
                   </svg>
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* BOUTONS FILTRES MODERNES - HORIZONTAUX */}
+          <div className="col-span-1 flex items-end justify-between gap-1 pb-[2px]">
+            {/* AVEC CONTENU */}
+            <div className="flex flex-col items-center gap-1">
+              <ToggleSwitch
+                checked={filters.showContentOnly || false}
+                onChange={() =>
+                  setFilters({
+                    ...filters,
+                    showContentOnly: !filters.showContentOnly,
+                  })
+                }
+                color="blue"
+              />
+              <span className="text-[10px] text-gray-500">Contenu</span>
+            </div>
+
+            {/* GRATUIT */}
+            <div className="flex flex-col items-center gap-1">
+              <ToggleSwitch
+                checked={filters.showFreeOnly || false}
+                onChange={handleFreeToggle}
+                color="green"
+              />
+              <span className="text-[10px] text-gray-500">Gratuit</span>
+            </div>
+
+            {/* PAYANT */}
+            <div className="flex flex-col items-center gap-1">
+              <ToggleSwitch
+                checked={filters.showPaywallOnly || false}
+                onChange={handlePaywallToggle}
+                color="amber"
+              />
+              <span className="text-[10px] text-gray-500">Payant</span>
             </div>
           </div>
         </div>

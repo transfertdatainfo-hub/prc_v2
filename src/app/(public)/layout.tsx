@@ -1,3 +1,5 @@
+// src\app\(public)\layout.tsx
+
 import { PublicHeader } from "@/components/prc/public-header";
 import { PublicFooter } from "@/components/prc/public-footer";
 

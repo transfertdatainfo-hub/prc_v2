@@ -1,3 +1,5 @@
+// src\app\(dashboard)\news\page.tsx
+
 "use client";
 
 import {
@@ -34,9 +36,7 @@ export default function RSSReaderPage() {
   const [loading, setLoading] = useState(false);
   const [loadingArticles, setLoadingArticles] = useState(false);
   const [loadingAllArticles, setLoadingAllArticles] = useState(false);
-  const [viewMode, setViewMode] = useState<"category" | "all" | "feeds">(
-    "category",
-  );
+  const [viewMode, setViewMode] = useState<"category" | "all" | "feeds">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [mediaOptions, setMediaOptions] = useState<MediaOption[]>([]);
   const [interestFilters, setInterestFilters] = useState<InterestFilter[]>([]);
@@ -51,11 +51,17 @@ export default function RSSReaderPage() {
     category: string;
     mediaFilter?: string;
     activeInterestFilters: string[];
+    showFreeOnly?: boolean;
+    showPaywallOnly?: boolean;
+    showContentOnly?: boolean;
   }>({
     language: "",
     category: "",
     mediaFilter: undefined,
     activeInterestFilters: [],
+    showFreeOnly: false,
+    showPaywallOnly: false,
+    showContentOnly: false,
   });
 
   const fetchInterestFilters = async () => {
@@ -132,7 +138,7 @@ export default function RSSReaderPage() {
     }
   }, [viewMode, selectedFeed]);
 
-  // EXTRAIRE LES MÉDIAS UNIQUES DES FEEDS
+  // EXTRAIRE LES MÉDIAS UNIQUES DES FEEDS - VERSION CORRIGÉE
   useEffect(() => {
     if (feeds.length > 0) {
       console.log("🔍 Feeds reçus:", feeds);
@@ -143,11 +149,17 @@ export default function RSSReaderPage() {
         try {
           const url = new URL(feed.url);
           const domain = url.hostname.replace("www.", "");
-          console.log(`📌 Feed: ${feed.title} | Domaine: ${domain}`);
 
-          if (!uniqueMedia.has(domain)) {
-            // Extraire un nom de média plus lisible depuis le titre
-            let mediaName = feed.title;
+          // Définir les vrais noms des médias en fonction du domaine
+          let mediaName = "";
+
+          if (domain.includes("canada.ca")) {
+            mediaName = "Gouvernement du Canada";
+          } else if (domain.includes("lemonde.fr")) {
+            mediaName = "Le Monde.fr";
+          } else {
+            // Fallback: extraire du titre comme avant
+            mediaName = feed.title;
             if (mediaName.includes(" | ")) {
               mediaName = mediaName.split(" | ")[0];
             } else if (mediaName.includes(" - ")) {
@@ -155,10 +167,13 @@ export default function RSSReaderPage() {
             } else if (mediaName.includes(":")) {
               mediaName = mediaName.split(":")[0];
             }
+            mediaName = mediaName.trim();
+          }
 
+          if (!uniqueMedia.has(domain)) {
             uniqueMedia.set(domain, {
               value: domain,
-              label: mediaName.trim() || domain,
+              label: mediaName || domain,
             });
           }
         } catch (e) {
@@ -166,7 +181,9 @@ export default function RSSReaderPage() {
         }
       });
 
-      setMediaOptions(Array.from(uniqueMedia.values()));
+      const mediaOptionsArray = Array.from(uniqueMedia.values());
+      console.log("✅ Media options générées:", mediaOptionsArray);
+      setMediaOptions(mediaOptionsArray);
     }
   }, [feeds]);
 
@@ -497,27 +514,6 @@ export default function RSSReaderPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-0">
         <div className="max-w-7xl mx-auto">
           <div className="flex gap-6">
-            {/* Onglet Par catégorie (nouveau) */}
-            <button
-              onClick={() => {
-                setViewMode("category");
-                setSelectedFeed(null);
-              }}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
-                viewMode === "category"
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Newspaper className="w-4 h-4" />
-                Par catégorie
-              </span>
-              {viewMode === "category" && (
-                <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
-              )}
-            </button>
-
             {/* Onglet Tous les articles (anciennement premier) */}
             <button
               onClick={() => {
@@ -553,6 +549,27 @@ export default function RSSReaderPage() {
                 Par flux RSS
               </span>
               {viewMode === "feeds" && (
+                <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
+              )}
+            </button>
+
+            {/* Onglet Par catégorie (nouveau) */}
+            <button
+              onClick={() => {
+                setViewMode("category");
+                setSelectedFeed(null);
+              }}
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
+                viewMode === "category"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Newspaper className="w-4 h-4" />
+                Par catégorie
+              </span>
+              {viewMode === "category" && (
                 <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
               )}
             </button>
@@ -606,6 +623,7 @@ export default function RSSReaderPage() {
             loading={loadingAllArticles}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            filters={filters}
           />
         )}
       </div>

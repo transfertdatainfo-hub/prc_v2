@@ -1,4 +1,5 @@
 // src/lib/filters/interestFilterEngine.ts
+
 import { Article } from '@/types/Article';
 import { InterestFilter } from '@/types/InterestFilter';
 

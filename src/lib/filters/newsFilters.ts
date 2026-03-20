@@ -1,4 +1,5 @@
 // src/lib/filters/newsFilters.ts
+
 import { Article } from '@/types/Article';
 import { Filters } from '@/types/Filters';
 import { applyInterestFilters, containsAnyKeyword } from './interestFilterEngine';
@@ -18,6 +19,7 @@ const isEconomie = (text: string) =>
 /**
  * Fonction principale de filtrage
  * Combine les anciens filtres (langue, catégorie) avec les nouveaux filtres d'intérêts
+ * et les filtres spéciaux (payant, contenu)
  */
 export function filterArticles(
   articles: Article[],
@@ -27,6 +29,24 @@ export function filterArticles(
   if (!articles.length) return [];
   
   let result = [...articles];
+  
+  // 0. FILTRES SPÉCIAUX (payant / contenu)
+  // Ces filtres sont appliqués en premier car ils sont indépendants
+  
+  // Filtre "Articles payants uniquement"
+  if (filters.showPaywallOnly) {
+    result = result.filter(article => article.isPaywalled === true);
+  }
+
+    // Filtre "Articles gratuits uniquement" (non payants)
+  if (filters.showFreeOnly) {
+    result = result.filter(article => article.isPaywalled === false);
+  }
+  
+  // Filtre "Articles avec contenu complet uniquement"
+  if (filters.showContentOnly) {
+    result = result.filter(article => article.hasFullContent === true);
+  }
   
   // 1. FILTRES EXISTANTS (langue, catégorie, etc.)
   
@@ -54,7 +74,7 @@ export function filterArticles(
   
   // Anciens filtres "Ma recherche" (à garder pour l'instant)
     
-  // 2. NOUVEAU : Filtres d'intérêts personnalisés
+  // 2. FILTRES D'INTÉRÊTS PERSONNALISÉS
   if (filters.activeInterestFilters && filters.activeInterestFilters.length > 0) {
     // Récupérer les filtres actifs avec leurs mots-clés
     const activeFiltersWithKeywords = interestFilters.filter(f => 

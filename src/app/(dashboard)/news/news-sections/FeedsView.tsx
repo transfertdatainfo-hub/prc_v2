@@ -1,3 +1,5 @@
+// src\app\(dashboard)\news\news-sections\FeedsView.tsx
+
 "use client";
 
 import { Article } from "@/types/Article";
@@ -149,6 +151,27 @@ export default function FeedsView({
                   ? `Articles - ${selectedFeed.title}`
                   : "Sélectionnez un flux"}
               </h2>
+
+              {/* Badges des filtres actifs - NOUVEAU */}
+              <div className="flex items-center gap-1">
+                {filters.showPaywallOnly && (
+                  <span
+                    className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"
+                    title="Filtre payant actif"
+                  >
+                    <DollarSign className="w-3 h-3" />
+                  </span>
+                )}
+                {filters.showContentOnly && (
+                  <span
+                    className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full"
+                    title="Filtre contenu actif"
+                  >
+                    <FileText className="w-3 h-3" />
+                  </span>
+                )}
+              </div>
+
               {selectedFeed && filteredArticles.length > 0 && (
                 <span className="flex-shrink-0 bg-blue-100 text-blue-700 text-xs font-medium px-2.5 py-0.5 rounded-full">
                   {filteredArticles.length}
