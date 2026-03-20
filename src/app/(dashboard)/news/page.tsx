@@ -329,10 +329,12 @@ export default function RSSReaderPage() {
         setFeedUrl("");
       } else {
         alert(data.error || "Erreur lors de l'ajout du flux RSS");
+        setFeedUrl("");
       }
     } catch (error) {
       console.error("Erreur:", error);
       alert("Erreur de connexion au serveur");
+      setFeedUrl("");
     } finally {
       setLoading(false);
     }
@@ -345,13 +347,39 @@ export default function RSSReaderPage() {
       });
 
       if (response.ok) {
-        setFeeds(feeds.filter((f) => f.id !== feedId));
+        // Mettre à jour la liste des flux
+        const updatedFeeds = feeds.filter((f) => f.id !== feedId);
+        setFeeds(updatedFeeds);
+
+        // Si le flux supprimé était sélectionné en mode feeds
         if (selectedFeed?.id === feedId) {
           setSelectedFeed(null);
           setArticles([]);
         }
-        if (viewMode === "all") {
-          fetchAllArticles();
+
+        // Rafraîchir les articles selon le mode actuel
+        if (viewMode === "all" || viewMode === "category") {
+          if (updatedFeeds.length === 0) {
+            // Plus aucun flux : vider tous les articles
+            setAllArticles([]);
+            setUniqueArticles([]);
+          } else {
+            // Recharger tous les articles
+            await fetchAllArticles();
+          }
+        } else if (viewMode === "feeds") {
+          // En mode feeds, on vide les articles du flux supprimé
+          if (selectedFeed?.id === feedId) {
+            setArticles([]);
+          }
+          // Si plus de flux, on vide aussi les articles de allArticles (pour l'affichage des stats)
+          if (updatedFeeds.length === 0) {
+            setAllArticles([]);
+            setUniqueArticles([]);
+          } else {
+            // Optionnel : recharger les articles pour mettre à jour les stats
+            await fetchAllArticles();
+          }
         }
       }
     } catch (error) {
@@ -491,14 +519,25 @@ export default function RSSReaderPage() {
       {/* Barre d'ajout de flux RSS */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <div className="max-w-7xl mx-auto flex gap-3">
-          <input
-            type="url"
-            value={feedUrl}
-            onChange={(e) => setFeedUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addFeed()}
-            placeholder="Entrez l'URL d'un flux RSS..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
-          />
+          <div className="flex-1 relative">
+            <input
+              type="url"
+              value={feedUrl}
+              onChange={(e) => setFeedUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addFeed()}
+              placeholder="Entrez l'URL d'un flux RSS..."
+              className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
+            />
+            {feedUrl && (
+              <button
+                onClick={() => setFeedUrl("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                type="button"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <button
             onClick={addFeed}
             disabled={loading || !feedUrl.trim()}

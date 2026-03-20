@@ -1,0 +1,72 @@
+- PROCÉDURE COMPLÈTE À SUIVRE SYSTÉMATIQUEMENT
+	Avant chaque git commit ou avant de lancer npm run dev
+	# 1. Vérification TypeScript (la plus importante)
+	Write-Host "🔍 Vérification TypeScript..." -ForegroundColor Cyan
+	npx tsc --noEmit
+
+	# Si erreur → CORRIGE avant de continuer
+
+	# 2. Vérification ESLint
+	Write-Host "🧹 Vérification ESLint..." -ForegroundColor Cyan
+	npx next lint
+
+	# 3. Build de test (optionnel mais recommandé)
+	Write-Host "🏗️  Build de test..." -ForegroundColor Cyan
+	npx next build
+
+	# 4. Seulement si tout est OK, lance le dev
+	Write-Host "✅ Tout est bon ! Démarrage..." -ForegroundColor Green
+	npm run dev
+
+- lorsqu'on termine le travail sur une branche, et qu'on a une version stable qu'on voudrais garder, on la merge vers main et dev et on crée une nouvelle branche pour commencer la prochaine étape. Ca nous permetterai de revenir a tout moment vers cette version stable, si on casse le système avec la nouvelle étape.
+
+	Vérifier s'il y a des fichiers modifiés
+	git status
+
+	s'il y a des fichiers modifiés ==> Commit final
+	git add .
+	git commit -m "feat(business) : Version Stable After "
+
+	Fusionner la branche dans dev (local)
+	git checkout dev
+	git pull
+	git merge feature/actualite-step
+
+	Si tout est OK, alors
+	git push
+
+	Fusionner dans main (local)
+	git checkout main
+	git pull
+	git merge feature/actualite-step
+	
+	Si tout est OK, alors
+	git push
+
+	Supprimer la branche locale
+	git branch -D feature/actualite-step
+
+	Créer une nouvelle branche propre pour la prochaine étape
+	git checkout dev
+	git pull
+	git checkout -b feature/actualite-step
+
+
+- Si le travail sur la branche feature/actualite-step casse le système
+	voici les commandes pour revenir à l'état avant feature/actualite-step
+	Vous avez dev ou main qui sont stables
+	Vous voulez supprimer définitivement la branche cassée feature/actualite-step
+	Vous voulez repartir de zéro sur une nouvelle branche feature/actualite-step
+	
+	Alors executez ces commandes:
+	# 1. ALLER SUR LA BRANCHE STABLE (choisir dev OU main)
+	git checkout dev
+
+	# 3. SUPPRIMER LA BRANCHE CASSÉE (LOCAL)
+	git branch -D feature/actualite-step
+
+	# 5. CRÉER UNE NOUVELLE BRANCHE PROPRE
+	git checkout -b feature/actualite-step
+
+	# 7. NETTOYER LES FICHIERS NON SUIVIS (optionnel mais recommandé)
+	git clean -f -d
