@@ -497,7 +497,7 @@ export default function RSSReaderPage() {
             onChange={(e) => setFeedUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addFeed()}
             placeholder="Entrez l'URL d'un flux RSS..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
           />
           <button
             onClick={addFeed}

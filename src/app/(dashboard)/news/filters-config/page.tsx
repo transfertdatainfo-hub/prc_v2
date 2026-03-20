@@ -160,7 +160,7 @@ export default function FiltersConfigPage() {
                     setEditForm({ ...editForm, label: e.target.value })
                   }
                   placeholder="ex: Enrôlement Canada"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                 />
               </div>
 
@@ -175,7 +175,7 @@ export default function FiltersConfigPage() {
                     onChange={(e) => setKeywordInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addKeyword()}
                     placeholder="Ajouter un mot-clé"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                   />
                   <button
                     onClick={addKeyword}
