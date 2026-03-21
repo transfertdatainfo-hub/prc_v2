@@ -44,52 +44,73 @@ export default function AllView({
     <div className="flex-1 bg-gray-50 overflow-y-auto">
       <div className="max-w-4xl mx-auto py-6 px-4">
         {/* En-tête avec compteur et information sur les doublons */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Tous les articles
-          </h1>
 
-          {/* Indicateurs de filtres actifs - NOUVEAU */}
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <p className="text-sm text-gray-500">
-              {filteredArticles.length} article
-              {filteredArticles.length > 1 ? "s" : ""} unique
-              {filteredArticles.length > 1 ? "s" : ""}
-            </p>
+        <div className="mb-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">
+              Tous les articles
+            </h1>
 
-            {filters.showContentOnly && (
-              <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                <FileText className="w-3 h-3" />
-                Avec contenu
-              </span>
-            )}
+            {/* Indicateurs de filtres actifs */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <p className="text-sm text-gray-500">
+                {filteredArticles.length} article
+                {filteredArticles.length > 1 ? "s" : ""} unique
+                {filteredArticles.length > 1 ? "s" : ""}
+              </p>
 
-            {filters.showFreeOnly && (
-              <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                <Gift className="w-3 h-3" />
-                Gratuits
-              </span>
-            )}
+              {filters.showContentOnly && (
+                <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                  <FileText className="w-3 h-3" />
+                  Avec contenu
+                </span>
+              )}
 
-            {filters.showPaywallOnly && (
-              <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                <DollarSign className="w-3 h-3" />
-                Payants
-              </span>
+              {filters.showFreeOnly && (
+                <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                  <Gift className="w-3 h-3" />
+                  Gratuits
+                </span>
+              )}
+
+              {filters.showPaywallOnly && (
+                <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                  <DollarSign className="w-3 h-3" />
+                  Payants
+                </span>
+              )}
+            </div>
+
+            {/* Information sur les doublons */}
+            {allArticles.length > uniqueArticles.length && (
+              <div className="mt-1">
+                <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded inline-block">
+                  {allArticles.length - uniqueArticles.length} doublon
+                  {allArticles.length - uniqueArticles.length > 1
+                    ? "s"
+                    : ""}{" "}
+                  supprimé
+                  {allArticles.length - uniqueArticles.length > 1 ? "s" : ""}
+                </p>
+              </div>
             )}
           </div>
 
-          {/* Information sur les doublons */}
-          {allArticles.length > uniqueArticles.length && (
-            <div className="mt-1">
-              <p className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded inline-block">
-                {allArticles.length - uniqueArticles.length} doublon
-                {allArticles.length - uniqueArticles.length > 1 ? "s" : ""}{" "}
-                supprimé
-                {allArticles.length - uniqueArticles.length > 1 ? "s" : ""}
-              </p>
-            </div>
-          )}
+          {/* BOUTON RAPPORT ACTUALITÉS */}
+          <button
+            onClick={() => {
+              console.log(
+                "🔍 Génération du rapport avec",
+                filteredArticles.length,
+                "articles",
+              );
+              // TODO: Appeler la fonction de génération de rapport
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+          >
+            <FileText className="w-4 h-4" />
+            Rapport Actualités
+          </button>
         </div>
 
         {/* Barre de recherche */}

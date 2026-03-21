@@ -461,6 +461,25 @@ export default function RSSReaderPage() {
     return withSearch;
   }, [articlesToDisplay, filters, applyFilters, searchFilter]);
 
+  // Ajoutez cette fonction dans le composant RSSReaderPage (vers la ligne 400)
+  const handleGenerateReport = useCallback(() => {
+    console.log(
+      "🚀 Génération du rapport avec",
+      filteredArticles.length,
+      "articles",
+    );
+
+    // TODO: Implémenter la génération réelle
+    // const reportContent = await ReportGenerator.generateReport(filteredArticles);
+    // await ReportGenerator.saveReport('user-1', reportContent);
+
+    // Pour l'instant, juste un log
+    console.log(
+      "Articles à inclure dans le rapport:",
+      filteredArticles.map((a) => a.title),
+    );
+  }, [filteredArticles]);
+
   // Statistiques pour l'affichage (avec les doublons pour les stats)
   const getFeedStats = (feedId: string) => {
     const totalWithDuplicates = allArticles.filter(
@@ -644,6 +663,7 @@ export default function RSSReaderPage() {
             onDeleteFeed={deleteFeed}
             extractMediaName={extractMediaName}
             extractDomain={extractDomain}
+            onGenerateReport={handleGenerateReport}
           />
         ) : viewMode === "category" ? (
           /* Mode "Par catégorie" */

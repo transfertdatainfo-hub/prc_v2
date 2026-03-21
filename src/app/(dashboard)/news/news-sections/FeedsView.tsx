@@ -31,6 +31,7 @@ interface FeedsViewProps {
   onDeleteFeed: (feedId: string) => void;
   extractMediaName: (title: string) => string;
   extractDomain: (url: string) => string;
+  onGenerateReport?: () => void; // ✅ Déjà présent
 }
 
 export default function FeedsView({
@@ -49,6 +50,7 @@ export default function FeedsView({
   onDeleteFeed,
   extractMediaName,
   extractDomain,
+  onGenerateReport,
 }: FeedsViewProps) {
   return (
     <>
@@ -152,7 +154,7 @@ export default function FeedsView({
                   : "Sélectionnez un flux"}
               </h2>
 
-              {/* Badges des filtres actifs - NOUVEAU */}
+              {/* Badges des filtres actifs */}
               <div className="flex items-center gap-1">
                 {filters.showPaywallOnly && (
                   <span
@@ -179,6 +181,27 @@ export default function FeedsView({
               )}
             </div>
 
+            {/* BOUTON RAPPORT ACTUALITÉS */}
+            {selectedFeed && filteredArticles.length > 0 && (
+              <button
+                onClick={() => {
+                  if (onGenerateReport) {
+                    onGenerateReport();
+                  } else {
+                    console.log(
+                      "🔍 Génération du rapport avec",
+                      filteredArticles.length,
+                      "articles",
+                    );
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Rapport Actualités
+              </button>
+            )}
+
             <div className="relative w-80 flex-shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
@@ -187,7 +210,7 @@ export default function FeedsView({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-8 py-1.5 text-sm border border-gray-300 rounded-lg
-                   focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
+           focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
               />
               {searchQuery && (
                 <button

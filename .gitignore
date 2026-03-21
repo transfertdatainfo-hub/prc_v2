@@ -45,3 +45,4 @@ turbo/
 /src/generated/prisma
 
 TODO.txt
+.src/scripts/

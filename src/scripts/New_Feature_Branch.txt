@@ -25,7 +25,7 @@
 
 	s'il y a des fichiers modifiés ==> Commit final
 	git add .
-	git commit -m "feat(business) : Version Stable After "
+	git commit -m "feat(business) : News Version Stable Before IA Functionnalities"
 
 	Fusionner la branche dans dev (local)
 	git checkout dev
