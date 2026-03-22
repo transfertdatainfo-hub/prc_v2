@@ -1,5 +1,4 @@
-- PROCÉDURE COMPLÈTE À SUIVRE SYSTÉMATIQUEMENT
-	Avant chaque git commit ou avant de lancer npm run dev
+- PROCÉDURE COMPLÈTE À SUIVRE SYSTÉMATIQUEMENT Avant chaque git commit ou avant de lancer npm run dev
 	# 1. Vérification TypeScript (la plus importante)
 	Write-Host "🔍 Vérification TypeScript..." -ForegroundColor Cyan
 	npx tsc --noEmit
@@ -70,3 +69,25 @@
 
 	# 7. NETTOYER LES FICHIERS NON SUIVIS (optionnel mais recommandé)
 	git clean -f -d
+
+
+- Après une modification dans schema.prisma, il faut migrer
+
+    # Créer une nouvelle migration
+    npx prisma migrate dev --name add_source_to_rss_feeds
+
+    # Ou si vous utilisez Prisma sans migrations (pour développement)
+    npx prisma db push
+
+    # Régénérer le client Prisma
+    npx prisma generate
+
+- Si après une migration et regeneration du client prisma le Typescript ne reconnait pas encore le ou les champs ajoutés, alors il faut nettoyez le cache TypeScript:
+    # Supprimer le cache Next.js
+    rm -rf .next
+    # Supprimer le cache TypeScript
+    rm -rf node_modules/.cache
+    # Régénérer Prisma
+    npx prisma generate
+    # Redémarrer le serveur
+    npm run dev

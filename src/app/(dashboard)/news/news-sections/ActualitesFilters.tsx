@@ -5,7 +5,6 @@
 import { Props } from "@/types/Props";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Gift, Lock } from "lucide-react";
 import { ToggleSwitch } from "@/components/prc/ToggleSwitch";
 
 // Composant réutilisable pour les filtres de type select
@@ -46,6 +45,13 @@ export default function ActualitesFilters({
   const router = useRouter();
   const [interestFilters, setInterestFilters] = useState<any[]>([]);
 
+  // Log pour vérifier les mediaOptions reçues
+  console.log(
+    "🔍 ActualitesFilters - mediaOptions reçues:",
+    mediaOptions.length,
+    mediaOptions,
+  );
+
   // Charger les filtres d'intérêts
   useEffect(() => {
     const fetchInterestFilters = async () => {
@@ -60,11 +66,11 @@ export default function ActualitesFilters({
     fetchInterestFilters();
   }, []);
 
-  // Gestionnaire pour activer un filtre personnalisé (remplace l'ancien)
+  // Gestionnaire pour activer un filtre personnalisé
   const handleFilterChange = (filterId: string) => {
     setFilters({
       ...filters,
-      activeInterestFilters: [filterId], // ← Un seul filtre à la fois
+      activeInterestFilters: [filterId],
     });
   };
 
@@ -79,8 +85,6 @@ export default function ActualitesFilters({
 
   // Fonction pour gérer le toggle Gratuit avec exclusion mutuelle
   const handleFreeToggle = () => {
-    // Si on active Gratuit (actuellement false), on désactive Payant
-    // Si on désactive Gratuit (actuellement true), on ne change que Gratuit
     setFilters({
       ...filters,
       showFreeOnly: !filters.showFreeOnly,
@@ -90,8 +94,6 @@ export default function ActualitesFilters({
 
   // Fonction pour gérer le toggle Payant avec exclusion mutuelle
   const handlePaywallToggle = () => {
-    // Si on active Payant (actuellement false), on désactive Gratuit
-    // Si on désactive Payant (actuellement true), on ne change que Payant
     setFilters({
       ...filters,
       showPaywallOnly: !filters.showPaywallOnly,
@@ -104,20 +106,24 @@ export default function ActualitesFilters({
       <div className="max-w-7xl mx-auto">
         {/* Filtres sur UNE SEULE LIGNE */}
         <div className="grid grid-cols-12 gap-4">
-          {/* FILTRE MÉDIA */}
+          {/* FILTRE SOURCE */}
           <div className="col-span-3">
             <FilterSelect
-              label="Média"
-              value={filters.mediaFilter || ""}
+              label="Source"
+              value={filters.sourceId || ""}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                 setFilters({
                   ...filters,
-                  mediaFilter: e.target.value || undefined,
+                  sourceId: e.target.value || undefined,
                 })
               }
               options={mediaOptions}
               placeholder="Tous les médias"
             />
+            {/* Debug: afficher le nombre d'options */}
+            <p className="text-xs text-gray-400 mt-1">
+              {mediaOptions.length} source(s) disponible(s)
+            </p>
           </div>
 
           {/* Langue */}
@@ -154,13 +160,12 @@ export default function ActualitesFilters({
             />
           </div>
 
-          {/* FILTRES PERSONNALISÉS - NEUMORPHISM EXACT */}
+          {/* FILTRES PERSONNALISÉS */}
           <div className="col-span-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Mes filtres personnalisés
             </label>
             <div className="flex gap-2">
-              {/* Combobox avec flèche */}
               <div className="relative flex-1">
                 <select
                   value={
@@ -171,7 +176,6 @@ export default function ActualitesFilters({
                   onChange={(e) => {
                     const selectedValue = e.target.value;
                     if (selectedValue === "") {
-                      // Si "Aucun filtre" est sélectionné, vider tous les filtres actifs
                       setFilters({
                         ...filters,
                         activeInterestFilters: [],
@@ -188,14 +192,13 @@ export default function ActualitesFilters({
                     </option>
                   ))}
                 </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 text-black">
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
                     <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
                   </svg>
                 </div>
               </div>
 
-              {/* BOUTON NEUMORPHISM - CHANGE SELON ÉTAT */}
               <button
                 onClick={() => router.push("/news/filters-config")}
                 className="w-[58px] h-[58px] flex items-center justify-center rounded-2xl bg-gray-50 transition-all duration-300 hover:scale-105 active:scale-95"
@@ -212,7 +215,6 @@ export default function ActualitesFilters({
                 }
               >
                 {interestFilters.length === 0 ? (
-                  // ✅ ICONE VIDE
                   <svg
                     width="28"
                     height="28"
@@ -231,7 +233,6 @@ export default function ActualitesFilters({
                     <circle cx="7" cy="18" r="2" />
                   </svg>
                 ) : (
-                  // ✅ ICONE PLEINE
                   <svg
                     width="28"
                     height="28"
@@ -254,9 +255,8 @@ export default function ActualitesFilters({
             </div>
           </div>
 
-          {/* BOUTONS FILTRES MODERNES - HORIZONTAUX */}
+          {/* BOUTONS FILTRES MODERNES */}
           <div className="col-span-1 flex items-end justify-between gap-1 pb-[2px]">
-            {/* AVEC CONTENU */}
             <div className="flex flex-col items-center gap-1">
               <ToggleSwitch
                 checked={filters.showContentOnly || false}
@@ -271,7 +271,6 @@ export default function ActualitesFilters({
               <span className="text-[10px] text-gray-500">Contenu</span>
             </div>
 
-            {/* GRATUIT */}
             <div className="flex flex-col items-center gap-1">
               <ToggleSwitch
                 checked={filters.showFreeOnly || false}
@@ -281,7 +280,6 @@ export default function ActualitesFilters({
               <span className="text-[10px] text-gray-500">Gratuit</span>
             </div>
 
-            {/* PAYANT */}
             <div className="flex flex-col items-center gap-1">
               <ToggleSwitch
                 checked={filters.showPaywallOnly || false}
@@ -294,13 +292,13 @@ export default function ActualitesFilters({
         </div>
 
         {/* Indicateurs de filtres actifs */}
-        {filters.mediaFilter && (
+        {filters.sourceId && (
           <div className="mt-2 flex justify-end">
             <button
-              onClick={() => setFilters({ ...filters, mediaFilter: undefined })}
+              onClick={() => setFilters({ ...filters, sourceId: undefined })}
               className="text-sm text-red-500 hover:text-red-700 flex items-center gap-1"
             >
-              <span>✕ Réinitialiser le filtre média</span>
+              <span>✕ Réinitialiser le filtre source</span>
             </button>
           </div>
         )}

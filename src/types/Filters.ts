@@ -3,7 +3,7 @@
 export type Filters = {
   language: string;
   category: string;
-  mediaFilter?: string;
+  sourceId?: string;
   activeInterestFilters: string[];
   showPaywallOnly?: boolean;
   showContentOnly?: boolean;

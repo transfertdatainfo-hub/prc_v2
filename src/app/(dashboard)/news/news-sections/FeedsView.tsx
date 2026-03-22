@@ -1,4 +1,4 @@
-// src\app\(dashboard)\news\news-sections\FeedsView.tsx
+// src/app/(dashboard)/news/news-sections/FeedsView.tsx
 
 "use client";
 
@@ -31,7 +31,7 @@ interface FeedsViewProps {
   onDeleteFeed: (feedId: string) => void;
   extractMediaName: (title: string) => string;
   extractDomain: (url: string) => string;
-  onGenerateReport?: () => void; // ✅ Déjà présent
+  onGenerateReport?: () => void;
 }
 
 export default function FeedsView({
@@ -61,19 +61,14 @@ export default function FeedsView({
             <Rss className="w-5 h-5" />
             Mes flux RSS
           </h2>
-          {filters.mediaFilter && (
+          {filters.sourceId && (
             <p className="text-sm text-blue-600 mt-1 flex items-center gap-2 ml-4">
               <span>
                 Filtré par :{" "}
-                {
-                  mediaOptions.find((m) => m.value === filters.mediaFilter)
-                    ?.label
-                }
+                {mediaOptions.find((m) => m.value === filters.sourceId)?.label}
               </span>
               <button
-                onClick={() =>
-                  setFilters({ ...filters, mediaFilter: undefined })
-                }
+                onClick={() => setFilters({ ...filters, sourceId: undefined })}
                 className="text-xs text-red-500 hover:text-red-700"
               >
                 ✕
@@ -106,7 +101,8 @@ export default function FeedsView({
                       className="font-medium text-gray-800 truncate flex-1 pr-2 text-lg"
                       title={feed.title}
                     >
-                      {extractMediaName(feed.title)}
+                      {/* 👇 AFFICHER LE NOM DE LA SOURCE SI DISPONIBLE */}
+                      {feed.source?.name || extractMediaName(feed.title)}
                     </h3>
 
                     <button
@@ -145,12 +141,12 @@ export default function FeedsView({
                 className="text-lg font-semibold text-gray-800 truncate"
                 title={
                   selectedFeed
-                    ? `Articles - ${selectedFeed.title}`
+                    ? `Articles - ${selectedFeed.source?.name || selectedFeed.title}`
                     : "Sélectionnez un flux"
                 }
               >
                 {selectedFeed
-                  ? `Articles - ${selectedFeed.title}`
+                  ? `Articles - ${selectedFeed.source?.name || selectedFeed.title}`
                   : "Sélectionnez un flux"}
               </h2>
 
@@ -246,10 +242,19 @@ export default function FeedsView({
                 >
                   {/* En-tête avec le nom du flux ET les badges */}
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    {/* Nom du flux */}
+                    {/* Nom du flux - utilise la source si disponible */}
                     {article.feedTitle && (
                       <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                        {extractMediaName(article.feedTitle)}
+                        {/* Chercher le feed correspondant pour afficher le nom de la source */}
+                        {(() => {
+                          const feed = feeds.find(
+                            (f) => f.id === article.feedId,
+                          );
+                          return (
+                            feed?.source?.name ||
+                            extractMediaName(article.feedTitle)
+                          );
+                        })()}
                       </span>
                     )}
 

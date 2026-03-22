@@ -97,20 +97,22 @@ export default function AllView({
           </div>
 
           {/* BOUTON RAPPORT ACTUALITÉS */}
-          <button
-            onClick={() => {
-              console.log(
-                "🔍 Génération du rapport avec",
-                filteredArticles.length,
-                "articles",
-              );
-              // TODO: Appeler la fonction de génération de rapport
-            }}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
-          >
-            <FileText className="w-4 h-4" />
-            Rapport Actualités
-          </button>
+          {allArticles.length > 0 && (
+            <button
+              onClick={() => {
+                console.log(
+                  "🔍 Génération du rapport avec",
+                  filteredArticles.length,
+                  "articles",
+                );
+                // TODO: Appeler la fonction de génération de rapport
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <FileText className="w-4 h-4" />
+              Rapport Actualités
+            </button>
+          )}
         </div>
 
         {/* Barre de recherche */}
