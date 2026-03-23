@@ -309,6 +309,8 @@ export default function RSSReaderPage() {
           setArticles([]);
         }
 
+        await fetchSources();
+
         if (viewMode === "all" || viewMode === "category") {
           if (updatedFeeds.length === 0) {
             setAllArticles([]);
