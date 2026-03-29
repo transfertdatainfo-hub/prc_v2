@@ -52,6 +52,11 @@ export default function FeedsView({
   extractDomain,
   onGenerateReport,
 }: FeedsViewProps) {
+  // Créer une copie triée des flux par ordre alphabétique (selon le titre)
+  const sortedFeeds = [...filteredFeedsByMedia].sort((a, b) => {
+    return a.title.localeCompare(b.title, "fr", { sensitivity: "base" });
+  });
+
   return (
     <>
       {/* Colonne de gauche - Liste des flux */}
@@ -86,7 +91,7 @@ export default function FeedsView({
             </div>
           ) : (
             <div className="p-4 space-y-2">
-              {filteredFeedsByMedia.map((feed) => (
+              {sortedFeeds.map((feed) => (
                 <div
                   key={feed.id}
                   onClick={() => setSelectedFeed(feed)}
@@ -101,8 +106,8 @@ export default function FeedsView({
                       className="font-medium text-gray-800 truncate flex-1 pr-2 text-lg"
                       title={feed.title}
                     >
-                      {/* 👇 AFFICHER LE NOM DE LA SOURCE SI DISPONIBLE */}
-                      {feed.source?.name || extractMediaName(feed.title)}
+                      {/* Afficher le titre du flux, pas la source */}
+                      {feed.title}
                     </h3>
 
                     <button

@@ -38,7 +38,9 @@ export default function RSSReaderPage() {
   const [loadingAllArticles, setLoadingAllArticles] = useState(false);
 
   // État pour l'interface
-  const [viewMode, setViewMode] = useState<"category" | "all" | "feeds">("all");
+  const [viewMode, setViewMode] = useState<"category" | "all" | "feeds">(
+    "category",
+  );
   const [searchQuery, setSearchQuery] = useState("");
 
   // État pour les sources
@@ -500,20 +502,20 @@ export default function RSSReaderPage() {
           <div className="flex gap-6">
             <button
               onClick={() => {
-                setViewMode("all");
+                setViewMode("category");
                 setSelectedFeed(null);
               }}
               className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
-                viewMode === "all"
+                viewMode === "category"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               <span className="flex items-center gap-2">
-                <Rss className="w-4 h-4" />
-                Tous les articles
+                <Newspaper className="w-4 h-4" />
+                Par catégorie
               </span>
-              {viewMode === "all" && (
+              {viewMode === "category" && (
                 <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
               )}
             </button>
@@ -537,20 +539,20 @@ export default function RSSReaderPage() {
 
             <button
               onClick={() => {
-                setViewMode("category");
+                setViewMode("all");
                 setSelectedFeed(null);
               }}
               className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
-                viewMode === "category"
+                viewMode === "all"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               <span className="flex items-center gap-2">
-                <Newspaper className="w-4 h-4" />
-                Par catégorie
+                <Rss className="w-4 h-4" />
+                Tous les articles
               </span>
-              {viewMode === "category" && (
+              {viewMode === "all" && (
                 <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
               )}
             </button>
