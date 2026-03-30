@@ -82,7 +82,8 @@
     # Régénérer le client Prisma
     npx prisma generate
 
-- Si après une migration et regeneration du client prisma le Typescript ne reconnait pas encore le ou les champs ajoutés, alors il faut nettoyez le cache TypeScript:
+- Si après une migration et regeneration du client prisma le Typescript ne reconnait pas encore le ou les champs ajoutés, 
+  alors il faut nettoyez le cache TypeScript:
     # Supprimer le cache Next.js
     rm -rf .next
     # Supprimer le cache TypeScript
@@ -91,3 +92,18 @@
     npx prisma generate
     # Redémarrer le serveur
     npm run dev
+
+- Si Prisma est corrompue ==> Nettoyer et réinstaller Prisma
+    # Supprimer node_modules et package-lock.json
+    Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue
+    Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue
+
+    # Supprimer le dossier prisma/generated (si existant)
+    Remove-Item -Recurse -Force prisma/generated -ErrorAction SilentlyContinue
+
+    # Réinstaller toutes les dépendances
+    npm install
+
+    # Réinstaller avec les versions exactes (identiques à votre package.json)
+    npm install prisma@5.22.0 --save-dev
+    npm install @prisma/client@5.22.0

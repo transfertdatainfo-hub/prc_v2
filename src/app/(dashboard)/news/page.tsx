@@ -180,8 +180,14 @@ export default function RSSReaderPage() {
   };
 
   // Charger tous les articles de tous les flux
+  // Charger tous les articles de tous les flux
   const fetchAllArticles = useCallback(async () => {
-    if (feeds.length === 0) {
+    // Filtrer les flux qui ont une URL (exclure les catégories sans URL)
+    const feedsWithUrl = feeds.filter(
+      (feed) => feed.url && feed.url.trim() !== "",
+    );
+
+    if (feedsWithUrl.length === 0) {
       setAllArticles([]);
       setUniqueArticles([]);
       return;
@@ -189,8 +195,8 @@ export default function RSSReaderPage() {
 
     setLoadingAllArticles(true);
     try {
-      const articlesPromises = feeds.map((feed) =>
-        fetch(`/api/rss-feeds/articles?url=${encodeURIComponent(feed.url)}`)
+      const articlesPromises = feedsWithUrl.map((feed) =>
+        fetch(`/api/rss-feeds/articles?url=${encodeURIComponent(feed.url!)}`)
           .then((res) => res.json())
           .then((articles) =>
             articles.map((article: Article) => ({
@@ -226,40 +232,6 @@ export default function RSSReaderPage() {
     }
   }, [feeds]);
 
-  // ==================== FONCTIONS DE GESTION DES FLUX ====================
-
-  // Ajouter un nouveau flux
-  /*const addFeed = async () => {
-    if (!feedUrl.trim()) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch("/api/rss-feeds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: feedUrl }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setFeeds([...feeds, data]);
-        setFeedUrl("");
-        console.log("✅ Flux ajouté avec source:", data.source?.name);
-      } else {
-        alert(data.error || "Erreur lors de l'ajout du flux RSS");
-        setFeedUrl("");
-      }
-    } catch (error) {
-      console.error("Erreur:", error);
-      alert("Erreur de connexion au serveur");
-      setFeedUrl("");
-    } finally {
-      setLoading(false);
-    }
-  };*/
-  // src/app/(dashboard)/news/page.tsx
-
   // Ajouter un nouveau flux
   const addFeed = async () => {
     if (!feedUrl.trim()) return;
@@ -278,7 +250,8 @@ export default function RSSReaderPage() {
         setFeeds([...feeds, data]);
         setFeedUrl("");
 
-        // 👇 AJOUTER CETTE LIGNE : Recharger les sources
+        window.dispatchEvent(new CustomEvent("refreshFeeds"));
+
         await fetchSources();
 
         console.log("✅ Flux ajouté avec source:", data.source?.name);
@@ -427,8 +400,9 @@ export default function RSSReaderPage() {
   }, [viewMode, feeds, fetchAllArticles]);
 
   // Charger les articles d'un flux spécifique
+  // Charger les articles d'un flux spécifique
   useEffect(() => {
-    if (viewMode === "feeds" && selectedFeed) {
+    if (viewMode === "feeds" && selectedFeed && selectedFeed.url) {
       fetchArticles(selectedFeed.url);
     }
   }, [viewMode, selectedFeed]);

@@ -20,7 +20,10 @@ export async function GET() {
     const feeds = await prisma.rSSFeed.findMany({
       where: { userId },
       include: {
-        source: true // Inclure la source associée
+        source: true,
+        children: {
+          include: { source: true }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -32,11 +35,76 @@ export async function GET() {
   }
 }
 
-// POST - Ajouter un nouveau flux RSS
+// POST - Ajouter un nouveau flux RSS ou une catégorie
 export async function POST(request: Request) {
   try {
-    const { url } = await request.json();
+    const { url, parentId, nodeType, title, sourceId } = await request.json();
     const userId = 'user-1'; // À remplacer par l'auth
+
+    // ============================================================
+    // CAS 1 : CRÉATION D'UNE CATÉGORIE
+    // ============================================================
+    if (nodeType === 'category') {
+      // Validation du nom
+      if (!title || !title.trim()) {
+        return NextResponse.json(
+          { error: 'Le nom de la catégorie est requis' },
+          { status: 400 }
+        );
+      }
+
+      // Vérifier que le parent existe si spécifié
+      if (parentId) {
+        const parent = await prisma.rSSFeed.findFirst({
+          where: { id: parentId, userId }
+        });
+        if (!parent) {
+          return NextResponse.json(
+            { error: 'Catégorie parente non trouvée' },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Vérifier que la source existe si spécifiée
+      if (sourceId) {
+        const source = await prisma.source.findUnique({
+          where: { id: sourceId }
+        });
+        if (!source) {
+          return NextResponse.json(
+            { error: 'Source non trouvée' },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Créer la catégorie
+      const category = await prisma.rSSFeed.create({
+        data: {
+          title: title.trim(),
+          userId,
+          parentId: parentId || null,
+          nodeType: 'category',
+          url: url || null,        // URL optionnelle pour la catégorie
+          sourceId: sourceId || null, // Associer la source à la catégorie
+        },
+        include: { source: true }
+      });
+
+      console.log('✅ Catégorie créée:', {
+        id: category.id,
+        title: category.title,
+        source: category.source?.name || 'Aucune source',
+        url: category.url || 'Pas d\'URL'
+      });
+
+      return NextResponse.json(category);
+    }
+
+    // ============================================================
+    // CAS 2 : CRÉATION D'UN FLUX RSS
+    // ============================================================
 
     // 1. Valider l'URL
     if (!url || !url.trim()) {
@@ -80,25 +148,47 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Récupérer ou créer la source (⭐ ÉTAPE CLÉ)
-    const sourceId = await getOrCreateSource(url);
+    // 5. Récupérer ou créer la source
+    const detectedSourceId = await getOrCreateSource(url);
 
-    // 6. Créer le flux
+    // 6. Vérifier que le parent existe si spécifié
+    if (parentId) {
+      const parent = await prisma.rSSFeed.findFirst({
+        where: { id: parentId, userId }
+      });
+      if (!parent) {
+        return NextResponse.json(
+          { error: 'Catégorie parente non trouvée' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 7. Déterminer la sourceId finale
+    //    - Si un sourceId est fourni explicitement (ex: pour un flux dans une catégorie), l'utiliser
+    //    - Sinon, utiliser la source détectée
+    const finalSourceId = sourceId || detectedSourceId;
+
+    // 8. Créer le flux
     const rssFeed = await prisma.rSSFeed.create({
       data: {
         title: feedData.title || 'Sans titre',
         url,
-        sourceId, // 👈 Seulement l'ID de la source
-        userId
+        sourceId: finalSourceId,
+        userId,
+        parentId: parentId || null,
+        nodeType: 'feed',
       },
       include: {
-        source: true // Inclure la source dans la réponse
+        source: true
       }
     });
 
     console.log('✅ Flux ajouté:', {
+      id: rssFeed.id,
       title: rssFeed.title,
-      source: rssFeed.source?.name || 'Aucune source'
+      source: rssFeed.source?.name || 'Aucune source',
+      parentId: rssFeed.parentId || 'racine'
     });
 
     return NextResponse.json(rssFeed);

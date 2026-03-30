@@ -1,70 +1,75 @@
-// prisma\schema.prisma
-
 // prisma/schema.prisma
+
 generator client {
-  provider = "prisma-client-js" // Important : c'est "-js" en v5
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // L'URL revient dans le schéma
+  url      = env("DATABASE_URL")
 }
 
-// VOS MODÈLES RESTENT EXACTEMENT LES MÊMES
-model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
-  name            String?
-  rssFeeds        RSSFeed[]
-  interestFilters InterestFilter[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-}
-
+// Table des sources (médias)
 model Source {
   id        String    @id @default(cuid())
   name      String    @unique
-  createdAt DateTime  @default(now())
+  feeds     RSSFeed[]
+  createdAt DateTime  @default(now()) @map("created_at")
   
-  // Relations
-  feeds     RSSFeed[]  // Un source peut avoir plusieurs flux RSS
+  @@map("sources")
 }
 
+// Table des flux RSS (modifiée pour supporter l'arborescence)
 model RSSFeed {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
-  url       String   @unique
-  sourceId  String?
-  userId    String
-  createdAt DateTime @default(now())
+  url       String?
+  userId    String    @map("user_id")
+  sourceId  String?   @map("source_id")
+  parentId  String?   @map("parent_id")
+  nodeType  String    @default("feed") @map("node_type")
+  createdAt DateTime  @default(now()) @map("created_at")
   
   // Relations
-  source    Source?  @relation(fields: [sourceId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  source   Source?   @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  parent   RSSFeed?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children RSSFeed[] @relation("CategoryTree")
+  
+  @@unique([userId, url])
+  @@map("rss_feeds")
 }
 
-// NOUVEAU : Modèle pour les filtres d'intérêts personnalisés
+// Table des filtres d'intérêts
 model InterestFilter {
   id        String    @id @default(cuid())
-  label     String // Ex: "Enrôlement Canada", "Guerre Ukraine"
-  userId    String // Pour plus tard quand tu auras l'auth
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  userId    String    @map("user_id")
   keywords  Keyword[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@unique([userId, label]) // Évite les doublons de nom pour un même user
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  
+  @@unique([userId, label])
   @@map("interest_filters")
 }
 
-// NOUVEAU : Modèle pour les mots-clés associés à un filtre
+// Table des mots-clés pour les filtres
 model Keyword {
   id        String         @id @default(cuid())
-  word      String // Le mot-clé lui-même
-  filterId  String
+  word      String
+  filterId  String         @map("filter_id")
+  createdAt DateTime       @default(now()) @map("created_at")
+  
   filter    InterestFilter @relation(fields: [filterId], references: [id], onDelete: Cascade)
-  createdAt DateTime       @default(now())
-
-  @@unique([filterId, word]) // Évite les doublons de mots-clés dans un même filtre
+  
   @@map("keywords")
+}
+
+// Table des rapports (pour plus tard)
+model Report {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  @@map("reports")
 }

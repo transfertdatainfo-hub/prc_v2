@@ -4,4 +4,9 @@ export type Source = {
   id: string;
   name: string;
   createdAt: Date;
+
+  _count?: {
+    feeds: number;
+  };
+  
 };

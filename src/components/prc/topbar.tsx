@@ -1,4 +1,4 @@
-// src\components\prc\topbar.tsx
+// src/components/prc/topbar.tsx
 
 "use client";
 
@@ -17,15 +17,15 @@ export function Topbar() {
         </span>
       </Link>
 
-      {/* Boutons à droite AVEC les titres */}
+      {/* Boutons à droite */}
       <nav className="flex items-center gap-1">
         <Link
           href="/profil"
           className="p-2 rounded-md hover:bg-prc-primary/10 relative group"
-          title="Profil" // ← Tooltip au survol
+          title="Profil"
         >
           <User className="w-5 h-5 text-prc-text-secondary" />
-          <span className="sr-only">Profil</span> {/* ← Pour accessibilité */}
+          <span className="sr-only">Profil</span>
         </Link>
 
         <Link
