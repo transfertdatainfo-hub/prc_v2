@@ -232,6 +232,41 @@ export default function RSSReaderPage() {
     }
   }, [feeds]);
 
+  // ==================== FONCTION DE RAFRAÎCHISSEMENT ====================
+
+  /**
+   * Rafraîchit les articles selon la vue actuelle
+   */
+  const refreshCurrentFeed = useCallback(async () => {
+    if (viewMode === "feeds" && selectedFeed?.url) {
+      // Mode Feeds : recharger le flux sélectionné
+      setLoadingArticles(true);
+      setArticles([]);
+      try {
+        const response = await fetch(
+          `/api/rss-feeds/articles?url=${encodeURIComponent(selectedFeed.url)}`,
+        );
+        const data = await response.json();
+        setArticles(data);
+        console.log(
+          `🔄 Flux "${selectedFeed.title}" rafraîchi:`,
+          data.length,
+          "articles",
+        );
+      } catch (error) {
+        console.error("Erreur lors du rafraîchissement:", error);
+      } finally {
+        setLoadingArticles(false);
+      }
+    } else if (viewMode === "all" || viewMode === "category") {
+      // Modes All et Category : recharger tous les articles
+      setAllArticles([]);
+      setUniqueArticles([]);
+      await fetchAllArticles();
+      console.log("🔄 Tous les articles rafraîchis");
+    }
+  }, [viewMode, selectedFeed, fetchAllArticles]);
+
   // Ajouter un nouveau flux
   const addFeed = async () => {
     if (!feedUrl.trim()) return;
@@ -253,6 +288,7 @@ export default function RSSReaderPage() {
         window.dispatchEvent(new CustomEvent("refreshFeeds"));
 
         await fetchSources();
+        await fetchAllArticles();
 
         console.log("✅ Flux ajouté avec source:", data.source?.name);
       } else {
@@ -562,11 +598,12 @@ export default function RSSReaderPage() {
             extractMediaName={extractMediaName}
             extractDomain={extractDomain}
             onGenerateReport={handleGenerateReport}
+            onRefresh={refreshCurrentFeed}
           />
         ) : viewMode === "category" ? (
           <CategoryView
             articles={filteredArticles}
-            filters={filters} // ✅ Déjà présent, vérifier
+            filters={filters}
             loading={loadingAllArticles}
             onGenerateReport={(articles, nodeTitle) => {
               console.log(
@@ -574,8 +611,9 @@ export default function RSSReaderPage() {
                 nodeTitle,
                 articles.length,
               );
-              handleGenerateReport(); // Ou votre fonction de génération
+              handleGenerateReport();
             }}
+            onRefresh={refreshCurrentFeed}
           />
         ) : (
           <AllView
@@ -587,6 +625,7 @@ export default function RSSReaderPage() {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             filters={filters}
+            onRefresh={refreshCurrentFeed}
           />
         )}
       </div>

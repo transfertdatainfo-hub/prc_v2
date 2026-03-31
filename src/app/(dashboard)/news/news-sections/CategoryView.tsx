@@ -22,6 +22,7 @@ import {
   FolderTree,
   FileText,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { Source } from "@/types/Source";
 
@@ -30,6 +31,7 @@ interface CategoryViewProps {
   filters: Filters; // ✅ MODIFIER - utiliser le type Filters existant
   loading?: boolean;
   onGenerateReport?: (articles: Article[], nodeTitle: string) => void;
+  onRefresh?: () => void;
 }
 
 // Modal d'ajout de catégorie
@@ -188,16 +190,17 @@ function NodeArticles({
   selectedNode,
   allArticles,
   loading,
-  filters, // ✅ AJOUT
+  filters,
+  onRefresh,
 }: {
   selectedNode: CategoryNode | null;
   allArticles: Article[];
   loading?: boolean;
   filters?: {
-    // ✅ AJOUT
     showContentOnly?: boolean;
     showPaywallOnly?: boolean;
   };
+  onRefresh?: () => void;
 }) {
   const [nodeArticles, setNodeArticles] = useState<Article[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -271,9 +274,25 @@ function NodeArticles({
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">
-                {selectedNode.title}
-              </h1>
+              {/* Titre avec bouton Rafraîchir intégré */}
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-gray-800">
+                  {selectedNode.title}
+                </h1>
+                {onRefresh && (
+                  <button
+                    onClick={onRefresh}
+                    disabled={loading}
+                    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Rafraîchir les articles"
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                    />
+                    <span>Rafraîchir</span>
+                  </button>
+                )}
+              </div>
               {selectedNode.url && (
                 <p className="text-xs text-green-600 mt-1 truncate">
                   📡 Flux: {selectedNode.url}
@@ -288,7 +307,6 @@ function NodeArticles({
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 {/* Badge CONTENU - si le filtre est actif */}
-                {/* @ts-ignore - filters peut ne pas avoir showContentOnly, mais on le reçoit de CategoryView */}
                 {filters?.showContentOnly && (
                   <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                     <FileText className="w-3 h-3" />
@@ -297,7 +315,6 @@ function NodeArticles({
                 )}
 
                 {/* Badge PAYANT - si le filtre est actif */}
-                {/* @ts-ignore */}
                 {filters?.showPaywallOnly && (
                   <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
                     <DollarSign className="w-3 h-3" />
@@ -688,6 +705,8 @@ export default function CategoryView({
   articles,
   filters,
   loading,
+  onGenerateReport,
+  onRefresh,
 }: CategoryViewProps) {
   const [allFeeds, setAllFeeds] = useState<RSSFeed[]>([]);
   const [tree, setTree] = useState<CategoryNode[]>([]);
@@ -1104,10 +1123,10 @@ export default function CategoryView({
           allArticles={articles}
           loading={loading || loadingTree}
           filters={{
-            // ✅ AJOUT
             showContentOnly: filters.showContentOnly,
             showPaywallOnly: filters.showPaywallOnly,
           }}
+          onRefresh={onRefresh}
         />
       </div>
 

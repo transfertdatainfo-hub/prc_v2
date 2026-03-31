@@ -1,4 +1,4 @@
-// src\app\(dashboard)\news\news-sections\AllViews.tsx
+// src/app/(dashboard)/news/news-sections/AllViews.tsx
 
 "use client";
 
@@ -10,6 +10,7 @@ import {
   FileText,
   DollarSign,
   Gift,
+  RefreshCw,
 } from "lucide-react";
 import { Filters } from "@/types/Filters";
 
@@ -22,6 +23,7 @@ interface AllViewProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   filters?: Filters;
+  onRefresh?: () => void;
 }
 
 export default function AllView({
@@ -39,17 +41,33 @@ export default function AllView({
     showPaywallOnly: false,
     showContentOnly: false,
   },
+  onRefresh,
 }: AllViewProps) {
   return (
     <div className="flex-1 bg-gray-50 overflow-y-auto">
       <div className="max-w-4xl mx-auto py-6 px-4">
         {/* En-tête avec compteur et information sur les doublons */}
-
         <div className="mb-6 flex justify-between items-start">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Tous les articles
-            </h1>
+            {/* Titre avec bouton Rafraîchir intégré */}
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-800">
+                Tous les articles
+              </h1>
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Rafraîchir les articles"
+                >
+                  <RefreshCw
+                    className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                  />
+                  <span>Rafraîchir</span>
+                </button>
+              )}
+            </div>
 
             {/* Indicateurs de filtres actifs */}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -96,7 +114,7 @@ export default function AllView({
             )}
           </div>
 
-          {/* BOUTON RAPPORT ACTUALITÉS */}
+          {/* BOUTON RAPPORT ACTUALITÉS - reste à droite */}
           {allArticles.length > 0 && (
             <button
               onClick={() => {
@@ -105,7 +123,6 @@ export default function AllView({
                   filteredArticles.length,
                   "articles",
                 );
-                // TODO: Appeler la fonction de génération de rapport
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
             >
@@ -142,7 +159,7 @@ export default function AllView({
           )}
         </div>
 
-        {/* Liste des articles uniques */}
+        {/* Liste des articles - reste inchangée */}
         {loading ? (
           <div className="text-center py-12 text-gray-500">
             Chargement des articles...
@@ -158,51 +175,37 @@ export default function AllView({
                 key={`${article.feedId}-${article.link}-${index}`}
                 className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               >
-                {/* En-tête avec le nom du flux ET les badges */}
+                {/* En-tête avec badges */}
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  {/* Nom du flux */}
                   {article.feedTitle && (
                     <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
                       {article.feedTitle}
                     </span>
                   )}
-
-                  {/* Badge CONTENU - si l'article a le contenu complet */}
                   {article.hasFullContent && (
-                    <span
-                      className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full"
-                      title="Contenu complet disponible"
-                    >
+                    <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                       <FileText className="w-3 h-3" />
                       <span>Contenu</span>
                     </span>
                   )}
-
-                  {/* Badge PAYANT - si l'article est payant */}
                   {article.isPaywalled && (
-                    <span
-                      className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full"
-                      title="Article payant"
-                    >
+                    <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
                       <DollarSign className="w-3 h-3" />
                       <span>Payant</span>
                     </span>
                   )}
                 </div>
 
-                {/* Titre de l'article */}
                 <h2 className="text-xl font-semibold text-gray-800 mb-3">
                   {article.title}
                 </h2>
 
-                {/* Description (si existe) */}
                 {article.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3">
                     {article.description}
                   </p>
                 )}
 
-                {/* Pied de l'article (date et lien) */}
                 <div className="flex justify-between items-center text-sm text-gray-500 border-t pt-4">
                   <span>
                     {new Date(article.pubDate).toLocaleDateString("fr-FR", {

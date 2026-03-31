@@ -12,6 +12,7 @@ import {
   ExternalLink,
   FileText,
   DollarSign,
+  RefreshCw,
 } from "lucide-react";
 import { Filters } from "@/types/Filters";
 
@@ -32,6 +33,7 @@ interface FeedsViewProps {
   extractMediaName: (title: string) => string;
   extractDomain: (url: string) => string;
   onGenerateReport?: () => void;
+  onRefresh?: () => void;
 }
 
 export default function FeedsView({
@@ -51,6 +53,7 @@ export default function FeedsView({
   extractMediaName,
   extractDomain,
   onGenerateReport,
+  onRefresh,
 }: FeedsViewProps) {
   // Créer une copie triée des flux par ordre alphabétique (selon le titre)
   const sortedFeeds = [...filteredFeedsByMedia].sort((a, b) => {
@@ -142,18 +145,34 @@ export default function FeedsView({
         <div className="px-6 py-3 bg-white border-b border-gray-200 h-[73px] flex items-center">
           <div className="flex justify-between items-center gap-4 w-full">
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <h2
-                className="text-lg font-semibold text-gray-800 truncate"
-                title={
-                  selectedFeed
+              {/* Titre avec bouton Rafraîchir intégré */}
+              <div className="flex items-center gap-3">
+                <h2
+                  className="text-lg font-semibold text-gray-800 truncate"
+                  title={
+                    selectedFeed
+                      ? `Articles - ${selectedFeed.source?.name || selectedFeed.title}`
+                      : "Sélectionnez un flux"
+                  }
+                >
+                  {selectedFeed
                     ? `Articles - ${selectedFeed.source?.name || selectedFeed.title}`
-                    : "Sélectionnez un flux"
-                }
-              >
-                {selectedFeed
-                  ? `Articles - ${selectedFeed.source?.name || selectedFeed.title}`
-                  : "Sélectionnez un flux"}
-              </h2>
+                    : "Sélectionnez un flux"}
+                </h2>
+                {selectedFeed && onRefresh && (
+                  <button
+                    onClick={onRefresh}
+                    disabled={loadingArticles}
+                    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Rafraîchir les articles"
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 ${loadingArticles ? "animate-spin" : ""}`}
+                    />
+                    <span>Rafraîchir</span>
+                  </button>
+                )}
+              </div>
 
               {/* Badges des filtres actifs */}
               <div className="flex items-center gap-1">
@@ -203,6 +222,7 @@ export default function FeedsView({
               </button>
             )}
 
+            {/* Barre de recherche */}
             <div className="relative w-80 flex-shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
@@ -224,7 +244,6 @@ export default function FeedsView({
             </div>
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto">
           {!selectedFeed ? (
             <div className="p-6 text-center text-gray-500">

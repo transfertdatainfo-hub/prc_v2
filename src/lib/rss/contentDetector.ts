@@ -6,7 +6,7 @@
  * Règles (dans l'ordre) :
  * 1. Présence de <content:encoded> → Contenu
  * 2. Présence de <content> (Atom) → Contenu
- * 3. Présence de <p>, <div> ou <img> dans <description> ET longueur >= 1000 → Contenu
+ * 3. Description de plus de 1000 caractères → Contenu
  */
 export function detectFullContent(item: any): boolean {
   
@@ -16,16 +16,23 @@ export function detectFullContent(item: any): boolean {
   }
   
   // Règle 2 : Présence du champ content (Atom)
-  if (item.content && item.content.length > 0) {
-    return true;
+  if (item.content) {
+    // Si c'est une chaîne et qu'elle a du contenu
+    if (typeof item.content === 'string' && item.content.length > 0) {
+      return true;
+    }
+    // Si c'est un objet (parfois dans certains parsers)
+    if (typeof item.content === 'object') {
+      const contentObj = item.content as any;
+      const contentStr = contentObj._ || contentObj['#'] || '';
+      if (contentStr.length > 0) {
+        return true;
+      }
+    }
   }
   
-  // Règle 3 : Description avec balises HTML ET longueur >= 1000 caractères
-  if (item.description && 
-      item.description.length >= 1000 &&
-      (item.description.includes('<p>') || 
-       item.description.includes('<div>') ||
-       item.description.includes('<img>'))) {
+  // Règle 3 : Description de plus de 1000 caractères
+  if (item.description && item.description.length > 1000) {
     return true;
   }
   

@@ -1,4 +1,4 @@
-// src\app\api\rss-feeds\articles\route.ts
+// src/app/api/rss-feeds/articles/route.ts
 
 import { NextResponse } from 'next/server'
 import Parser from 'rss-parser'
@@ -11,7 +11,7 @@ const parser = new Parser()
  * Règles (dans l'ordre) :
  * 1. Présence de content:encoded → Contenu
  * 2. Présence de content (Atom) → Contenu
- * 3. Présence de <p>, <div> ou <img> dans description ET longueur >= 1000 → Contenu
+ * 3. Description de plus de 1000 caractères → Contenu
  */
 function detectFullContent(item: any): boolean {
   
@@ -21,16 +21,21 @@ function detectFullContent(item: any): boolean {
   }
   
   // Règle 2 : content (Atom)
-  if (item.content && item.content.length > 0) {
-    return true;
+  if (item.content) {
+    if (typeof item.content === 'string' && item.content.length > 0) {
+      return true;
+    }
+    if (typeof item.content === 'object') {
+      const contentObj = item.content as any;
+      const contentStr = contentObj._ || contentObj['#'] || '';
+      if (contentStr.length > 0) {
+        return true;
+      }
+    }
   }
   
-  // Règle 3 : description avec HTML ET longueur >= 1000 caractères
-  if (item.description && 
-      item.description.length >= 1000 &&
-      (item.description.includes('<p>') || 
-       item.description.includes('<div>') ||
-       item.description.includes('<img>'))) {
+  // Règle 3 : Description de plus de 1000 caractères
+  if (item.description && item.description.length > 1000) {
     return true;
   }
   
@@ -57,7 +62,6 @@ function detectPaywall(link: string): { isPaywalled: boolean; paywallSource?: st
     }
   }
   
-  // Liste de domaines connus pour avoir des paywalls
   const paywallDomains = [
     'ft.com',
     'wsj.com',
@@ -67,9 +71,9 @@ function detectPaywall(link: string): { isPaywalled: boolean; paywallSource?: st
     'lefigaro.fr',
     'latimes.com',
     'nytimes.com',
-    'theglobeandmail.com',  // Canada
-    'thestar.com',           // Canada
-    'lapresse.ca'            // Québec
+    'theglobeandmail.com',
+    'thestar.com',
+    'lapresse.ca'
   ];
   
   try {
@@ -84,6 +88,58 @@ function detectPaywall(link: string): { isPaywalled: boolean; paywallSource?: st
   return { isPaywalled: false };
 }
 
+/**
+ * Extrait le contenu d'un item (gère les différents formats)
+ */
+function extractContent(item: any): string {
+  // Cas 1 : content:encoded (RSS avec extension)
+  if (item['content:encoded'] && typeof item['content:encoded'] === 'string') {
+    return item['content:encoded'];
+  }
+  
+  // Cas 2 : content (Atom) - peut être une chaîne ou un objet
+  if (item.content) {
+    if (typeof item.content === 'string') {
+      return item.content;
+    }
+    if (typeof item.content === 'object') {
+      const contentObj = item.content as any;
+      return contentObj._ || contentObj['#'] || '';
+    }
+  }
+  
+  // Cas 3 : fallback sur la description
+  return item.description || '';
+}
+
+/**
+ * Extrait la description d'un item
+ */
+function extractDescription(item: any): string {
+  // Priorité à contentSnippet (résumé court)
+  if (item.contentSnippet && typeof item.contentSnippet === 'string') {
+    return item.contentSnippet;
+  }
+  
+  // Sinon summary (Atom)
+  if (item.summary && typeof item.summary === 'string') {
+    return item.summary;
+  }
+  
+  // Sinon description
+  if (item.description && typeof item.description === 'string') {
+    return item.description;
+  }
+  
+  // Fallback sur le contenu (tronqué)
+  const content = extractContent(item);
+  if (content.length > 500) {
+    return content.substring(0, 500) + '...';
+  }
+  
+  return content;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const url = searchParams.get('url')
@@ -95,45 +151,41 @@ export async function GET(request: Request) {
   try {
     const feed = await parser.parseURL(url)
     
-    const articles = feed.items.map(item => {
-      // Détection du contenu
+    console.log('📡 Flux chargé:', {
+      url,
+      itemsCount: feed.items.length,
+      firstItemKeys: feed.items[0] ? Object.keys(feed.items[0]) : []
+    })
+    
+    const articles = feed.items.map((item: any, index: number) => {
       const hasFullContent = detectFullContent(item);
       const paywallInfo = detectPaywall(item.link || '');
+      const content = extractContent(item);
+      const description = extractDescription(item);
+      
+      // Log pour debug (seulement les 3 premiers articles)
+      if (index < 3) {
+        console.log(`📄 Article ${index + 1}:`, {
+          title: item.title?.substring(0, 50),
+          hasFullContent,
+          descriptionLength: description.length,
+          hasContentEncoded: !!item['content:encoded'],
+          hasContent: !!item.content
+        });
+      }
       
       return {
-        // Champs existants
         title: item.title || '',
         link: item.link || '',
-        description: item.contentSnippet || item.content || '',
-        pubDate: item.pubDate || '',
-        author: item.creator || '',
-        
-        // ✅ NOUVEAUX CHAMPS
+        description: description,
+        pubDate: item.pubDate || item.published || item.updated || '',
+        author: item.creator || item.author || '',
         hasFullContent: hasFullContent,
         isPaywalled: paywallInfo.isPaywalled,
         paywallSource: paywallInfo.paywallSource,
-        
-        // Optionnel : inclure le contenu complet si disponible
-        content: item.content || '',
-        
-        // Debug (optionnel, à enlever en production)
-        _debug: {
-          contentLength: item.content?.length || 0,
-          snippetLength: item.contentSnippet?.length || 0
-        }
+        content: content,
       };
     });
-    
-    // Log pour voir ce qu'on reçoit (à enlever en production)
-    if (articles.length > 0) {
-      console.log('🔍 Premier article:', {
-        titre: articles[0].title,
-        aContenu: articles[0].hasFullContent,
-        estPayant: articles[0].isPaywalled,
-        longueurContenu: articles[0].content?.length || 0,
-        longueurDescription: articles[0].description?.length || 0
-      });
-    }
     
     return NextResponse.json(articles)
   } catch (error) {
