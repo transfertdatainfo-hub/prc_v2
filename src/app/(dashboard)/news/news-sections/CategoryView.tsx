@@ -20,13 +20,16 @@ import {
   Search,
   X,
   FolderTree,
+  FileText,
+  DollarSign,
 } from "lucide-react";
 import { Source } from "@/types/Source";
 
 interface CategoryViewProps {
   articles: Article[];
-  filters: Filters;
+  filters: Filters; // ✅ MODIFIER - utiliser le type Filters existant
   loading?: boolean;
+  onGenerateReport?: (articles: Article[], nodeTitle: string) => void;
 }
 
 // Modal d'ajout de catégorie
@@ -185,10 +188,16 @@ function NodeArticles({
   selectedNode,
   allArticles,
   loading,
+  filters, // ✅ AJOUT
 }: {
   selectedNode: CategoryNode | null;
   allArticles: Article[];
   loading?: boolean;
+  filters?: {
+    // ✅ AJOUT
+    showContentOnly?: boolean;
+    showPaywallOnly?: boolean;
+  };
 }) {
   const [nodeArticles, setNodeArticles] = useState<Article[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -276,9 +285,56 @@ function NodeArticles({
                 </p>
               )}
             </div>
-            <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-              {filteredArticles.length} article
-              {filteredArticles.length > 1 ? "s" : ""}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {/* Badge CONTENU - si le filtre est actif */}
+                {/* @ts-ignore - filters peut ne pas avoir showContentOnly, mais on le reçoit de CategoryView */}
+                {filters?.showContentOnly && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                    <FileText className="w-3 h-3" />
+                    Avec contenu
+                  </span>
+                )}
+
+                {/* Badge PAYANT - si le filtre est actif */}
+                {/* @ts-ignore */}
+                {filters?.showPaywallOnly && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
+                    <DollarSign className="w-3 h-3" />
+                    Payant
+                  </span>
+                )}
+
+                {/* Compteur d'articles */}
+                <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                  {filteredArticles.length} article
+                  {filteredArticles.length > 1 ? "s" : ""}
+                </div>
+              </div>
+
+              {/* Bouton Rapport Actualités */}
+              {filteredArticles.length > 0 && (
+                <button
+                  onClick={() => {
+                    console.log(
+                      "🔍 Génération du rapport avec",
+                      filteredArticles.length,
+                      "articles",
+                    );
+                    const event = new CustomEvent("generateReport", {
+                      detail: {
+                        articles: filteredArticles,
+                        nodeTitle: selectedNode.title,
+                      },
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <FileText className="w-4 h-4" />
+                  Rapport Actualités
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -325,14 +381,51 @@ function NodeArticles({
                 key={`${article.feedId}-${article.link}-${index}`}
                 className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               >
+                {/* En-tête de l'article avec badges */}
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  {/* Nom du flux */}
+                  {article.feedTitle && (
+                    <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      {article.feedTitle}
+                    </span>
+                  )}
+
+                  {/* Badge CONTENU - si l'article a le contenu complet */}
+                  {article.hasFullContent && (
+                    <span
+                      className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full"
+                      title="Contenu complet disponible"
+                    >
+                      <FileText className="w-3 h-3" />
+                      <span>Contenu</span>
+                    </span>
+                  )}
+
+                  {/* Badge PAYANT - si l'article est payant */}
+                  {article.isPaywalled && (
+                    <span
+                      className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full"
+                      title="Article payant"
+                    >
+                      <DollarSign className="w-3 h-3" />
+                      <span>Payant</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Titre de l'article */}
                 <h2 className="text-xl font-semibold text-gray-800 mb-3">
                   {article.title}
                 </h2>
+
+                {/* Description */}
                 {article.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3">
                     {article.description}
                   </p>
                 )}
+
+                {/* Pied de l'article */}
                 <div className="flex justify-between items-center text-sm text-gray-500 border-t pt-4">
                   <span>
                     {new Date(article.pubDate).toLocaleDateString("fr-FR", {
@@ -1010,6 +1103,11 @@ export default function CategoryView({
           selectedNode={selectedNode}
           allArticles={articles}
           loading={loading || loadingTree}
+          filters={{
+            // ✅ AJOUT
+            showContentOnly: filters.showContentOnly,
+            showPaywallOnly: filters.showPaywallOnly,
+          }}
         />
       </div>
 

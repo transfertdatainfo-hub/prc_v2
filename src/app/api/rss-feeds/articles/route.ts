@@ -7,23 +7,30 @@ const parser = new Parser()
 
 /**
  * Détecte si un article a du contenu complet
+ * 
+ * Règles (dans l'ordre) :
+ * 1. Présence de content:encoded → Contenu
+ * 2. Présence de content (Atom) → Contenu
+ * 3. Présence de <p>, <div> ou <img> dans description ET longueur >= 1000 → Contenu
  */
 function detectFullContent(item: any): boolean {
-  // Méthode 1 : Présence de content (riche) et qu'il est significatif
-  if (item.content && item.content.length > 200) {
+  
+  // Règle 1 : content:encoded (RSS avec extension)
+  if (item['content:encoded'] && item['content:encoded'].length > 0) {
     return true;
   }
   
-  // Méthode 2 : contentSnippet est un résumé, mais s'il est long (>500) c'est peut-être complet
-  if (item.contentSnippet && item.contentSnippet.length > 500) {
+  // Règle 2 : content (Atom)
+  if (item.content && item.content.length > 0) {
     return true;
   }
   
-  // Méthode 3 : Le content (souvent HTML) contient des balises de structure
-  if (item.content && 
-      (item.content.includes('<p>') || 
-       item.content.includes('<div>') ||
-       item.content.includes('<img>'))) {
+  // Règle 3 : description avec HTML ET longueur >= 1000 caractères
+  if (item.description && 
+      item.description.length >= 1000 &&
+      (item.description.includes('<p>') || 
+       item.description.includes('<div>') ||
+       item.description.includes('<img>'))) {
     return true;
   }
   

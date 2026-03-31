@@ -566,8 +566,16 @@ export default function RSSReaderPage() {
         ) : viewMode === "category" ? (
           <CategoryView
             articles={filteredArticles}
-            filters={filters}
+            filters={filters} // ✅ Déjà présent, vérifier
             loading={loadingAllArticles}
+            onGenerateReport={(articles, nodeTitle) => {
+              console.log(
+                "📊 Rapport pour catégorie:",
+                nodeTitle,
+                articles.length,
+              );
+              handleGenerateReport(); // Ou votre fonction de génération
+            }}
           />
         ) : (
           <AllView

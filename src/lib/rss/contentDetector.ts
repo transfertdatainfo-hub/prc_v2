@@ -2,26 +2,27 @@
 
 /**
  * Détecte si un flux fournit le contenu complet d'un article
- * À utiliser dans fetchArticles et fetchAllArticles
+ * 
+ * Règles (dans l'ordre) :
+ * 1. Présence de <content:encoded> → Contenu
+ * 2. Présence de <content> (Atom) → Contenu
+ * 3. Présence de <p>, <div> ou <img> dans <description> ET longueur >= 1000 → Contenu
  */
 export function detectFullContent(item: any): boolean {
-  // Méthode 1 : Présence du champ content:encoded (commun dans RSS)
+  
+  // Règle 1 : Présence du champ content:encoded (RSS avec extension)
   if (item['content:encoded'] && item['content:encoded'].length > 0) {
     return true;
   }
   
-  // Méthode 2 : Présence du champ content (Atom)
+  // Règle 2 : Présence du champ content (Atom)
   if (item.content && item.content.length > 0) {
     return true;
   }
   
-  // Méthode 3 : La description est longue (plus de 500 caractères)
-  if (item.description && item.description.length > 500) {
-    return true;
-  }
-  
-  // Méthode 4 : La description contient du HTML élaboré
+  // Règle 3 : Description avec balises HTML ET longueur >= 1000 caractères
   if (item.description && 
+      item.description.length >= 1000 &&
       (item.description.includes('<p>') || 
        item.description.includes('<div>') ||
        item.description.includes('<img>'))) {
@@ -51,7 +52,6 @@ export function detectPaywall(link: string): { isPaywalled: boolean; source: str
     }
   }
   
-  // Liste de domaines connus pour avoir des paywalls
   const paywallDomains = [
     'ft.com',
     'wsj.com',
