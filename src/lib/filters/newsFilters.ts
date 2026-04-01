@@ -2,9 +2,10 @@
 
 import { Article } from '@/types/Article';
 import { Filters } from '@/types/Filters';
-import { applyInterestFilters, containsAnyKeyword } from './interestFilterEngine';
+import { applyBlockFilters } from './blockFilterEngine';
+import { InterestFilter, KeywordBlock } from '@/types/InterestFilter';
 
-// Import des anciennes fonctions de détection (à garder pour la compatibilité)
+// Anciennes fonctions de détection (gardées pour compatibilité)
 const isArabic = (text: string) => /[\u0600-\u06FF]/.test(text);
 const isFrench = (text: string) => /[éèêàùçîô]/i.test(text);
 const isEnglish = (text: string) => /^[\x00-\x7F]*$/.test(text);
@@ -17,6 +18,34 @@ const isEconomie = (text: string) =>
   /(économie|finance|marché|bourse|inflation)/i.test(text);
 
 /**
+ * Transforme un InterestFilter avec ses blocs en format compatible pour le moteur de filtrage
+ */
+function prepareFilterForEngine(filter: InterestFilter): { id: string; label: string; blocks: KeywordBlock[] } {
+  // Si le filtre a des blocs, les utiliser
+  if (filter.blocks && Array.isArray(filter.blocks) && filter.blocks.length > 0) {
+    return {
+      id: filter.id,
+      label: filter.label,
+      blocks: filter.blocks as KeywordBlock[]
+    };
+  }
+  
+  // Fallback pour les anciens filtres sans blocs : créer un bloc unique
+  const oldKeywords = filter.keywords.map(k => k.word);
+  return {
+    id: filter.id,
+    label: filter.label,
+    blocks: [
+      {
+        id: `legacy-${filter.id}`,
+        keywords: oldKeywords,
+        isExclusion: false
+      }
+    ]
+  };
+}
+
+/**
  * Fonction principale de filtrage
  * Combine les anciens filtres (langue, catégorie) avec les nouveaux filtres d'intérêts
  * et les filtres spéciaux (payant, contenu)
@@ -24,13 +53,13 @@ const isEconomie = (text: string) =>
 export function filterArticles(
   articles: Article[],
   filters: Filters,
-  interestFilters: { id: string; keywords: string[] }[] = [] // Les filtres d'intérêts avec leurs mots-clés
+  interestFilters: InterestFilter[] = []
 ): Article[] {
   if (!articles.length) return [];
   
   let result = [...articles];
   
-  // 0. FILTRES SPÉCIAUX (payant / contenu)
+  // ==================== FILTRES SPÉCIAUX ====================
   // Ces filtres sont appliqués en premier car ils sont indépendants
   
   // Filtre "Articles payants uniquement"
@@ -38,7 +67,7 @@ export function filterArticles(
     result = result.filter(article => article.isPaywalled === true);
   }
 
-    // Filtre "Articles gratuits uniquement" (non payants)
+  // Filtre "Articles gratuits uniquement" (non payants)
   if (filters.showFreeOnly) {
     result = result.filter(article => article.isPaywalled === false);
   }
@@ -48,7 +77,7 @@ export function filterArticles(
     result = result.filter(article => article.hasFullContent === true);
   }
   
-  // 1. FILTRES EXISTANTS (langue, catégorie, etc.)
+  // ==================== FILTRES EXISTANTS ====================
   
   // Filtre langue
   if (filters.language) {
@@ -72,18 +101,18 @@ export function filterArticles(
     });
   }
   
-  // Anciens filtres "Ma recherche" (à garder pour l'instant)
-    
-  // 2. FILTRES D'INTÉRÊTS PERSONNALISÉS
+  // ==================== FILTRES D'INTÉRÊTS PERSONNALISÉS ====================
+  // Applique la logique ET/OU/Exclusion avec les blocs
+  
   if (filters.activeInterestFilters && filters.activeInterestFilters.length > 0) {
-    // Récupérer les filtres actifs avec leurs mots-clés
-    const activeFiltersWithKeywords = interestFilters.filter(f => 
-      filters.activeInterestFilters.includes(f.id)
-    );
+    // Récupérer les filtres actifs avec leurs blocs
+    const activeFiltersWithBlocks = interestFilters
+      .filter(f => filters.activeInterestFilters.includes(f.id))
+      .map(prepareFilterForEngine);
     
-    if (activeFiltersWithKeywords.length > 0) {
-      // Appliquer le moteur de filtrage modulaire
-      result = applyInterestFilters(result, activeFiltersWithKeywords, containsAnyKeyword);
+    if (activeFiltersWithBlocks.length > 0) {
+      // Appliquer le nouveau moteur de filtrage par blocs
+      result = applyBlockFilters(result, activeFiltersWithBlocks);
     }
   }
   

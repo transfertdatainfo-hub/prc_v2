@@ -48,9 +48,6 @@ export default function RSSReaderPage() {
 
   // État pour les filtres d'intérêts
   const [interestFilters, setInterestFilters] = useState<InterestFilter[]>([]);
-  const [preparedFilters, setPreparedFilters] = useState<
-    { id: string; keywords: string[] }[]
-  >([]);
 
   // État pour les filtres généraux
   const [filters, setFilters] = useState<{
@@ -99,14 +96,6 @@ export default function RSSReaderPage() {
     return Array.from(uniqueMap.values());
   };
 
-  // Transforme les InterestFilter en format simple pour le filtrage
-  const prepareFiltersForEngine = (filters: InterestFilter[]) => {
-    return filters.map((filter) => ({
-      id: filter.id,
-      keywords: filter.keywords.map((k) => k.word),
-    }));
-  };
-
   // Extraire le domaine de l'URL
   const extractDomain = (url: string): string => {
     try {
@@ -143,7 +132,6 @@ export default function RSSReaderPage() {
       const response = await fetch("/api/interest-filters");
       const data = await response.json();
       setInterestFilters(data);
-      setPreparedFilters(prepareFiltersForEngine(data));
       console.log("✅ Filtres d'intérêts chargés:", data.length);
     } catch (error) {
       console.error("Erreur chargement filtres intérêts:", error);
@@ -179,7 +167,6 @@ export default function RSSReaderPage() {
     }
   };
 
-  // Charger tous les articles de tous les flux
   // Charger tous les articles de tous les flux
   const fetchAllArticles = useCallback(async () => {
     // Filtrer les flux qui ont une URL (exclure les catégories sans URL)
@@ -345,14 +332,6 @@ export default function RSSReaderPage() {
 
   // ==================== FONCTIONS DE FILTRAGE ====================
 
-  // Appliquer tous les filtres (langue, catégorie, intérêts, etc.)
-  const applyFilters = useCallback(
-    (articles: Article[], filters: any) => {
-      return filterArticles(articles, filters, preparedFilters);
-    },
-    [preparedFilters],
-  );
-
   // Filtre de recherche
   const searchFilter = useCallback(
     (text: string) => {
@@ -399,12 +378,18 @@ export default function RSSReaderPage() {
 
   // Articles filtrés (recherche + autres filtres)
   const filteredArticles = useMemo(() => {
-    const withFilters = applyFilters(articlesToDisplay, filters);
+    // Appliquer tous les filtres (langue, catégorie, intérêts, etc.)
+    const withFilters = filterArticles(
+      articlesToDisplay,
+      filters,
+      interestFilters,
+    );
+    // Appliquer la recherche
     const withSearch = withFilters.filter(
       (a) => searchFilter(a.title) || searchFilter(a.description || ""),
     );
     return withSearch;
-  }, [articlesToDisplay, filters, applyFilters, searchFilter]);
+  }, [articlesToDisplay, filters, interestFilters, searchFilter]);
 
   // ==================== GESTIONNAIRES D'ÉVÉNEMENTS ====================
 
@@ -435,7 +420,6 @@ export default function RSSReaderPage() {
     }
   }, [viewMode, feeds, fetchAllArticles]);
 
-  // Charger les articles d'un flux spécifique
   // Charger les articles d'un flux spécifique
   useEffect(() => {
     if (viewMode === "feeds" && selectedFeed && selectedFeed.url) {

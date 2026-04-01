@@ -44,7 +44,8 @@ model InterestFilter {
   id        String    @id @default(cuid())
   label     String
   userId    String    @map("user_id")
-  keywords  Keyword[]
+  blocks    Json?     // Stocke les blocs de mots-clés en JSON (structure: [{ id, keywords, isExclusion }])
+  keywords  Keyword[] // Gardé pour compatibilité avec l'ancien système
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   
@@ -52,7 +53,7 @@ model InterestFilter {
   @@map("interest_filters")
 }
 
-// Table des mots-clés pour les filtres
+// Table des mots-clés pour les filtres (conservée pour compatibilité)
 model Keyword {
   id        String         @id @default(cuid())
   word      String
