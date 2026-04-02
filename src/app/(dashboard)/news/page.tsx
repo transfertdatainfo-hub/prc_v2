@@ -453,6 +453,22 @@ export default function RSSReaderPage() {
     }
   }, [viewMode, filteredFeedsBySource, selectedFeed]);
 
+  const handleCategoryFilterChange = useCallback((filterId: string | null) => {
+    setFilters((prev) => ({
+      ...prev,
+      activeInterestFilters: filterId ? [filterId] : [],
+    }));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      // Optionnel: nettoyer quand on navigue vers une autre section
+      // sessionStorage.removeItem("categoryView_selectedNodeId");
+      // sessionStorage.removeItem("categoryView_activeFilterId");
+      // sessionStorage.removeItem("categoryView_expandedNodes");
+    };
+  }, []);
+
   // ==================== RENDU JSX ====================
 
   return (
@@ -598,6 +614,7 @@ export default function RSSReaderPage() {
               handleGenerateReport();
             }}
             onRefresh={refreshCurrentFeed}
+            onFilterChange={handleCategoryFilterChange}
           />
         ) : (
           <AllView

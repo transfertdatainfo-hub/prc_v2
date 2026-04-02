@@ -26,12 +26,20 @@ import {
 } from "lucide-react";
 import { Source } from "@/types/Source";
 
+// Clés pour sessionStorage
+const STORAGE_KEYS = {
+  SELECTED_NODE_ID: "categoryView_selectedNodeId",
+  ACTIVE_FILTER_ID: "categoryView_activeFilterId",
+  EXPANDED_NODES: "categoryView_expandedNodes",
+};
+
 interface CategoryViewProps {
   articles: Article[];
-  filters: Filters; // ✅ MODIFIER - utiliser le type Filters existant
+  filters: Filters;
   loading?: boolean;
   onGenerateReport?: (articles: Article[], nodeTitle: string) => void;
   onRefresh?: () => void;
+  onFilterChange?: (filterId: string | null) => void;
 }
 
 // Modal d'ajout de catégorie
@@ -205,18 +213,12 @@ function NodeArticles({
   const [nodeArticles, setNodeArticles] = useState<Article[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fonction pour récupérer tous les IDs de flux d'un nœud et de ses enfants
   const getFeedIdsFromNode = useCallback((node: CategoryNode): string[] => {
     let ids: string[] = [];
-
-    // Si le nœud lui-même a un ID (c'est un flux ou une catégorie avec URL)
     ids.push(node.id);
-
-    // Récupérer les IDs des enfants
     node.children.forEach((child) => {
       ids = [...ids, ...getFeedIdsFromNode(child)];
     });
-
     return ids;
   }, []);
 
@@ -227,18 +229,15 @@ function NodeArticles({
     }
 
     const feedIds = getFeedIdsFromNode(selectedNode);
-
     if (feedIds.length === 0) {
       setNodeArticles([]);
       return;
     }
 
-    // Filtrer les articles dont le feedId est dans la liste
     const filtered = allArticles.filter(
       (article) => article.feedId && feedIds.includes(article.feedId),
     );
 
-    // Trier par date décroissante
     const sorted = [...filtered].sort(
       (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime(),
     );
@@ -270,11 +269,9 @@ function NodeArticles({
   return (
     <div className="flex-1 bg-gray-50 overflow-y-auto">
       <div className="py-6 px-4">
-        {/* En-tête */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              {/* Titre avec bouton Rafraîchir intégré */}
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-gray-800">
                   {selectedNode.title}
@@ -306,38 +303,27 @@ function NodeArticles({
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                {/* Badge CONTENU - si le filtre est actif */}
                 {filters?.showContentOnly && (
                   <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                     <FileText className="w-3 h-3" />
                     Avec contenu
                   </span>
                 )}
-
-                {/* Badge PAYANT - si le filtre est actif */}
                 {filters?.showPaywallOnly && (
                   <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
                     <DollarSign className="w-3 h-3" />
                     Payant
                   </span>
                 )}
-
-                {/* Compteur d'articles */}
                 <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
                   {filteredArticles.length} article
                   {filteredArticles.length > 1 ? "s" : ""}
                 </div>
               </div>
 
-              {/* Bouton Rapport Actualités */}
               {filteredArticles.length > 0 && (
                 <button
                   onClick={() => {
-                    console.log(
-                      "🔍 Génération du rapport avec",
-                      filteredArticles.length,
-                      "articles",
-                    );
                     const event = new CustomEvent("generateReport", {
                       detail: {
                         articles: filteredArticles,
@@ -356,7 +342,6 @@ function NodeArticles({
           </div>
         </div>
 
-        {/* Barre de recherche */}
         <div className="relative w-full mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -376,7 +361,6 @@ function NodeArticles({
           )}
         </div>
 
-        {/* Liste des articles */}
         {loading ? (
           <div className="text-center py-12 text-gray-500">
             Chargement des articles...
@@ -398,51 +382,36 @@ function NodeArticles({
                 key={`${article.feedId}-${article.link}-${index}`}
                 className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-100"
               >
-                {/* En-tête de l'article avec badges */}
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  {/* Nom du flux */}
                   {article.feedTitle && (
                     <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
                       {article.feedTitle}
                     </span>
                   )}
-
-                  {/* Badge CONTENU - si l'article a le contenu complet */}
                   {article.hasFullContent && (
-                    <span
-                      className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full"
-                      title="Contenu complet disponible"
-                    >
+                    <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                       <FileText className="w-3 h-3" />
                       <span>Contenu</span>
                     </span>
                   )}
-
-                  {/* Badge PAYANT - si l'article est payant */}
                   {article.isPaywalled && (
-                    <span
-                      className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full"
-                      title="Article payant"
-                    >
+                    <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
                       <DollarSign className="w-3 h-3" />
                       <span>Payant</span>
                     </span>
                   )}
                 </div>
 
-                {/* Titre de l'article */}
                 <h2 className="text-xl font-semibold text-gray-800 mb-3">
                   {article.title}
                 </h2>
 
-                {/* Description */}
                 {article.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3">
                     {article.description}
                   </p>
                 )}
 
-                {/* Pied de l'article */}
                 <div className="flex justify-between items-center text-sm text-gray-500 border-t pt-4">
                   <span>
                     {new Date(article.pubDate).toLocaleDateString("fr-FR", {
@@ -554,7 +523,6 @@ function TreeNode({
         `}
         style={{ marginLeft: `${level * 20}px` }}
       >
-        {/* Expand/Collapse */}
         {node.children.length > 0 && (
           <button
             onClick={(e) => {
@@ -572,7 +540,6 @@ function TreeNode({
         )}
         {node.children.length === 0 && <div className="w-5 flex-shrink-0" />}
 
-        {/* Icône */}
         {node.nodeType === "category" ? (
           node.url ? (
             <FolderTree className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -583,7 +550,6 @@ function TreeNode({
           <Rss className="w-4 h-4 text-blue-500 flex-shrink-0" />
         )}
 
-        {/* Édition ou affichage */}
         {isEditing ? (
           <input
             type="text"
@@ -610,7 +576,6 @@ function TreeNode({
           </span>
         )}
 
-        {/* Actions */}
         <div className="opacity-0 group-hover:opacity-100 flex gap-1 flex-shrink-0">
           <button
             onClick={(e) => {
@@ -624,7 +589,6 @@ function TreeNode({
             <Edit2 className="w-3 h-3" />
           </button>
 
-          {/* Bouton Transformer en catégorie (uniquement pour les flux) */}
           {isFeed && (
             <button
               onClick={(e) => {
@@ -669,7 +633,6 @@ function TreeNode({
         </div>
       </div>
 
-      {/* Rendu des enfants */}
       {isExpanded && node.children.length > 0 && (
         <div>
           {node.children.map((child: CategoryNode) => (
@@ -707,15 +670,14 @@ export default function CategoryView({
   loading,
   onGenerateReport,
   onRefresh,
+  onFilterChange,
 }: CategoryViewProps) {
   const [allFeeds, setAllFeeds] = useState<RSSFeed[]>([]);
   const [tree, setTree] = useState<CategoryNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<CategoryNode | null>(null);
   const [loadingTree, setLoadingTree] = useState(true);
-
-  // ✅ État initial : tous les nœuds fermés
+  const [interestFilters, setInterestFilters] = useState<any[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-
   const [showAddModal, setShowAddModal] = useState(false);
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [convertTarget, setConvertTarget] = useState<{
@@ -725,98 +687,225 @@ export default function CategoryView({
     sourceId?: string | null;
   } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Drag & drop state
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragItem, setDragItem] = useState<{
     id: string;
     type: string;
     sourceId?: string | null;
   } | null>(null);
-
-  // Edition state
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [isRestoring, setIsRestoring] = useState(true);
 
-  // Référence pour l'intervalle de rafraîchissement
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Référence pour stocker l'état actuel des nœuds ouverts
   const expandedNodesRef = useRef(expandedNodes);
 
-  // Mettre à jour la référence quand expandedNodes change
+  // Sauvegarder l'état dans sessionStorage
+  const saveStateToStorage = useCallback(() => {
+    if (selectedNode) {
+      sessionStorage.setItem(STORAGE_KEYS.SELECTED_NODE_ID, selectedNode.id);
+    }
+    if (filters.activeInterestFilters.length > 0) {
+      sessionStorage.setItem(
+        STORAGE_KEYS.ACTIVE_FILTER_ID,
+        filters.activeInterestFilters[0],
+      );
+    } else {
+      sessionStorage.removeItem(STORAGE_KEYS.ACTIVE_FILTER_ID);
+    }
+    sessionStorage.setItem(
+      STORAGE_KEYS.EXPANDED_NODES,
+      JSON.stringify(Array.from(expandedNodes)),
+    );
+  }, [selectedNode, filters.activeInterestFilters, expandedNodes]);
+
+  // Sauvegarder avant de quitter la page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveStateToStorage();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [saveStateToStorage]);
+
+  // Sauvegarder quand l'état change
+  useEffect(() => {
+    if (!isRestoring) {
+      saveStateToStorage();
+    }
+  }, [
+    selectedNode,
+    filters.activeInterestFilters,
+    expandedNodes,
+    isRestoring,
+    saveStateToStorage,
+  ]);
+
   useEffect(() => {
     expandedNodesRef.current = expandedNodes;
   }, [expandedNodes]);
 
-  // Charger les flux
+  const fetchInterestFilters = useCallback(async () => {
+    try {
+      const res = await fetch("/api/interest-filters");
+      const data = await res.json();
+      setInterestFilters(data);
+    } catch (error) {
+      console.error("Erreur chargement filtres:", error);
+    }
+  }, []);
+
+  const findNodeById = useCallback(
+    (nodes: CategoryNode[], id: string): CategoryNode | null => {
+      for (const node of nodes) {
+        if (node.id === id) return node;
+        const found = findNodeById(node.children, id);
+        if (found) return found;
+      }
+      return null;
+    },
+    [],
+  );
+
   const fetchFeeds = useCallback(async () => {
     try {
       const res = await fetch("/api/rss-feeds");
       const data = await res.json();
       setAllFeeds(data);
-
-      // Construire l'arbre
       const categoryTree = buildCategoryTree(data);
       setTree(categoryTree);
 
-      // ✅ NE PAS réinitialiser expandedNodes ici
-      // Garder l'état actuel des nœuds ouverts
+      // Restaurer la sélection depuis sessionStorage (seulement au premier chargement)
+      if (isRestoring) {
+        const savedNodeId = sessionStorage.getItem(
+          STORAGE_KEYS.SELECTED_NODE_ID,
+        );
+        if (savedNodeId) {
+          const node = findNodeById(categoryTree, savedNodeId);
+          if (node) {
+            setSelectedNode(node);
+          } else if (categoryTree.length > 0) {
+            setSelectedNode(categoryTree[0]);
+          }
+        } else if (categoryTree.length > 0) {
+          setSelectedNode(categoryTree[0]);
+        }
+
+        // Restaurer les nœuds ouverts
+        const savedExpanded = sessionStorage.getItem(
+          STORAGE_KEYS.EXPANDED_NODES,
+        );
+        if (savedExpanded) {
+          try {
+            const expandedArray = JSON.parse(savedExpanded);
+            setExpandedNodes(new Set(expandedArray));
+          } catch (e) {
+            console.error("Erreur restauration expandedNodes:", e);
+          }
+        }
+
+        // Restaurer le filtre actif
+        const savedFilterId = sessionStorage.getItem(
+          STORAGE_KEYS.ACTIVE_FILTER_ID,
+        );
+        if (savedFilterId && onFilterChange) {
+          // Vérifier que le filtre existe toujours
+          const filterExists = interestFilters.some(
+            (f) => f.id === savedFilterId,
+          );
+          if (filterExists) {
+            onFilterChange(savedFilterId);
+          }
+        }
+
+        setIsRestoring(false);
+      }
     } catch (error) {
       console.error("Erreur chargement flux:", error);
     } finally {
       setLoadingTree(false);
     }
-  }, []);
+  }, [findNodeById, interestFilters, onFilterChange, isRestoring]);
 
+  // Charger les filtres d'abord
   useEffect(() => {
-    fetchFeeds();
+    fetchInterestFilters();
+  }, [fetchInterestFilters]);
 
-    // ✅ Intervalle avec préservation de l'état des nœuds
+  // Puis charger les flux (après que les filtres soient chargés)
+  useEffect(() => {
+    if (interestFilters.length > 0 || !isRestoring) {
+      fetchFeeds();
+    }
+  }, [fetchFeeds, interestFilters, isRestoring]);
+
+  // Intervalle de rafraîchissement sans recharger la sélection
+  useEffect(() => {
     refreshIntervalRef.current = setInterval(async () => {
-      // Sauvegarder l'état actuel avant rafraîchissement
       const savedExpanded = new Set(expandedNodesRef.current);
+      const savedSelectedNodeId = selectedNode?.id;
 
       try {
         const res = await fetch("/api/rss-feeds");
         const data = await res.json();
         setAllFeeds(data);
-
-        // Reconstruire l'arbre
         const categoryTree = buildCategoryTree(data);
         setTree(categoryTree);
-
-        // ✅ Restaurer l'état des nœuds ouverts
         setExpandedNodes(savedExpanded);
+
+        // Restaurer la sélection si le nœud existe toujours
+        if (savedSelectedNodeId) {
+          const node = findNodeById(categoryTree, savedSelectedNodeId);
+          if (node) {
+            setSelectedNode(node);
+          }
+        }
       } catch (error) {
         console.error("Erreur rafraîchissement:", error);
       }
-    }, 5000);
+    }, 30000); // 30 secondes au lieu de 5
 
     return () => {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
     };
-  }, [fetchFeeds]); // ✅ expandedNodes n'est PAS dans les dépendances
+  }, [selectedNode?.id, findNodeById]);
 
-  // Écouter l'événement de rafraîchissement
+  // Écouter l'événement de rafraîchissement manuel
   useEffect(() => {
     const handleRefresh = async () => {
       const savedExpanded = new Set(expandedNodesRef.current);
+      const savedSelectedNodeId = selectedNode?.id;
 
       await fetchFeeds();
       setExpandedNodes(savedExpanded);
+
+      if (savedSelectedNodeId) {
+        const node = findNodeById(tree, savedSelectedNodeId);
+        if (node) {
+          setSelectedNode(node);
+        }
+      }
     };
 
     window.addEventListener("refreshFeeds", handleRefresh);
+    return () => window.removeEventListener("refreshFeeds", handleRefresh);
+  }, [fetchFeeds, tree, findNodeById, selectedNode?.id]);
 
-    return () => {
-      window.removeEventListener("refreshFeeds", handleRefresh);
-    };
-  }, [fetchFeeds]);
+  const handleSelectNode = useCallback((node: CategoryNode) => {
+    setSelectedNode(node);
+  }, []);
 
-  // Créer une catégorie
+  const handleFilterSelect = useCallback(
+    (filterId: string | null) => {
+      if (onFilterChange) {
+        onFilterChange(filterId);
+      }
+    },
+    [onFilterChange],
+  );
+
   const createCategory = async (
     name: string,
     parentId: string | null = null,
@@ -848,7 +937,6 @@ export default function CategoryView({
     }
   };
 
-  // Transformer un flux en catégorie
   const convertFeedToCategory = async () => {
     if (!convertTarget) return;
 
@@ -877,12 +965,10 @@ export default function CategoryView({
     }
   };
 
-  // Créer une catégorie racine
   const handleAddRootCategory = (name: string, url?: string) => {
     createCategory(name, null, null, url);
   };
 
-  // Créer une sous-catégorie
   const createChildCategory = async (
     parentId: string,
     parentSourceId?: string | null,
@@ -899,7 +985,6 @@ export default function CategoryView({
     createCategory(name.trim(), parentId, parentSourceId, url || undefined);
   };
 
-  // Renommer un nœud
   const renameNode = async (id: string, newName: string) => {
     try {
       const res = await fetch(`/api/rss-feeds/${id}`, {
@@ -916,7 +1001,6 @@ export default function CategoryView({
     }
   };
 
-  // Supprimer un nœud
   const deleteNode = async (id: string, nodeType: string, title: string) => {
     if (
       !confirm(
@@ -930,6 +1014,10 @@ export default function CategoryView({
 
       if (res.ok) {
         await fetchFeeds();
+        if (selectedNode?.id === id) {
+          setSelectedNode(null);
+          sessionStorage.removeItem(STORAGE_KEYS.SELECTED_NODE_ID);
+        }
       } else {
         alert("Erreur lors de la suppression");
       }
@@ -938,7 +1026,6 @@ export default function CategoryView({
     }
   };
 
-  // Déplacer un élément
   const moveItem = async (itemId: string, targetId: string | null) => {
     try {
       const res = await fetch(`/api/rss-feeds/${itemId}`, {
@@ -955,7 +1042,6 @@ export default function CategoryView({
     }
   };
 
-  // Gestion du drag & drop
   const handleDragStart = (
     id: string,
     type: string,
@@ -965,9 +1051,7 @@ export default function CategoryView({
   };
 
   const handleDragOver = (e: React.DragEvent, id: string) => {
-    if (e) {
-      e.preventDefault();
-    }
+    if (e) e.preventDefault();
     setDragOverId(id);
   };
 
@@ -980,32 +1064,28 @@ export default function CategoryView({
     targetId: string,
     targetType: string,
   ) => {
-    if (e) {
-      e.preventDefault();
-    }
+    if (e) e.preventDefault();
     setDragOverId(null);
-
     if (!dragItem) return;
     if (dragItem.id === targetId) return;
-
     await moveItem(dragItem.id, targetId);
     setDragItem(null);
   };
 
   const toggleExpand = (nodeId: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(nodeId)) {
-      newExpanded.delete(nodeId);
-    } else {
-      newExpanded.add(nodeId);
-    }
-    setExpandedNodes(newExpanded);
+    setExpandedNodes((prev) => {
+      const newExpanded = new Set(prev);
+      if (newExpanded.has(nodeId)) {
+        newExpanded.delete(nodeId);
+      } else {
+        newExpanded.add(nodeId);
+      }
+      return newExpanded;
+    });
   };
 
-  // Filtrer l'arbre par recherche
   const filterTree = (nodes: CategoryNode[]): CategoryNode[] => {
     if (!searchQuery) return nodes;
-
     return nodes
       .filter((node) => {
         const matches = node.title
@@ -1022,16 +1102,8 @@ export default function CategoryView({
 
   const filteredTree = filterTree(tree);
 
-  // Sélectionner automatiquement le premier nœud non-vide
-  useEffect(() => {
-    if (filteredTree.length > 0 && !selectedNode) {
-      setSelectedNode(filteredTree[0]);
-    }
-  }, [filteredTree, selectedNode]);
-
   return (
     <div className="flex-1 flex overflow-hidden">
-      {/* Colonne de gauche - Arborescence (30% de largeur) */}
       <div className="w-[30%] bg-white border-r border-gray-200 flex flex-col">
         <div className="px-4 py-3 border-b border-gray-200">
           <div className="flex items-center justify-between mb-2">
@@ -1049,7 +1121,6 @@ export default function CategoryView({
           </div>
         </div>
 
-        {/* Barre de recherche */}
         <div className="p-4 border-b">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -1063,7 +1134,6 @@ export default function CategoryView({
           </div>
         </div>
 
-        {/* Arborescence */}
         <div className="flex-1 overflow-y-auto p-4">
           {loadingTree ? (
             <div className="text-center py-8 text-gray-400">Chargement...</div>
@@ -1099,7 +1169,7 @@ export default function CategoryView({
                     setConvertTarget({ id, title, url, sourceId });
                     setShowConvertModal(true);
                   }}
-                  onSelectNode={setSelectedNode}
+                  onSelectNode={handleSelectNode}
                   selectedNodeId={selectedNode?.id}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
@@ -1114,9 +1184,32 @@ export default function CategoryView({
             </div>
           )}
         </div>
+
+        {/* Sélecteur de filtre */}
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Filtre personnalisé
+          </label>
+          <select
+            value={filters.activeInterestFilters[0] || ""}
+            onChange={(e) => handleFilterSelect(e.target.value || null)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+          >
+            <option value="">Aucun filtre</option>
+            {interestFilters.map((filter) => (
+              <option key={filter.id} value={filter.id}>
+                {filter.label}
+              </option>
+            ))}
+          </select>
+          {interestFilters.length === 0 && (
+            <p className="text-xs text-gray-400 mt-1">
+              Aucun filtre. Configurez-en dans l&aposonglet Filtres.
+            </p>
+          )}
+        </div>
       </div>
 
-      {/* Colonne de droite - Articles (occupe tout l'espace restant) */}
       <div className="flex-1 bg-gray-50 overflow-y-auto">
         <NodeArticles
           selectedNode={selectedNode}
@@ -1130,14 +1223,12 @@ export default function CategoryView({
         />
       </div>
 
-      {/* Modal d'ajout de catégorie */}
       <AddCategoryModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddRootCategory}
       />
 
-      {/* Modal de transformation en catégorie */}
       <ConvertToCategoryModal
         isOpen={showConvertModal}
         onClose={() => {
