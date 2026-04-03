@@ -68,6 +68,25 @@ export default function RSSReaderPage() {
     showContentOnly: false,
   });
 
+  const [isHydrated, setIsHydrated] = useState(false);
+  useEffect(() => {
+    const saved = sessionStorage.getItem("news_filters");
+    if (saved) {
+      try {
+        setFilters(JSON.parse(saved));
+      } catch (e) {
+        console.error("Erreur parsing filters:", e);
+      }
+    }
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (isHydrated) {
+      sessionStorage.setItem("news_filters", JSON.stringify(filters));
+    }
+  }, [filters, isHydrated]);
+
   // ==================== FONCTIONS UTILITAIRES ====================
 
   // Éliminer les doublons basée sur le titre et la date
@@ -467,6 +486,16 @@ export default function RSSReaderPage() {
       // sessionStorage.removeItem("categoryView_activeFilterId");
       // sessionStorage.removeItem("categoryView_expandedNodes");
     };
+  }, []);
+
+  useEffect(() => {
+    const savedFilterId = sessionStorage.getItem("categoryView_activeFilterId");
+    if (savedFilterId) {
+      setFilters((prev) => ({
+        ...prev,
+        activeInterestFilters: [savedFilterId],
+      }));
+    }
   }, []);
 
   // ==================== RENDU JSX ====================

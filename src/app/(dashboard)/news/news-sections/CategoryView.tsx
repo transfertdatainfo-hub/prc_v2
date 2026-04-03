@@ -808,14 +808,9 @@ export default function CategoryView({
         const savedFilterId = sessionStorage.getItem(
           STORAGE_KEYS.ACTIVE_FILTER_ID,
         );
+
         if (savedFilterId && onFilterChange) {
-          // Vérifier que le filtre existe toujours
-          const filterExists = interestFilters.some(
-            (f) => f.id === savedFilterId,
-          );
-          if (filterExists) {
-            onFilterChange(savedFilterId);
-          }
+          onFilterChange(savedFilterId);
         }
 
         setIsRestoring(false);
@@ -834,10 +829,10 @@ export default function CategoryView({
 
   // Puis charger les flux (après que les filtres soient chargés)
   useEffect(() => {
-    if (interestFilters.length > 0 || !isRestoring) {
-      fetchFeeds();
-    }
-  }, [fetchFeeds, interestFilters, isRestoring]);
+    //if (interestFilters.length > 0 || !isRestoring) {
+    fetchFeeds();
+    //}
+  }, [fetchFeeds]);
 
   // Intervalle de rafraîchissement sans recharger la sélection
   useEffect(() => {
