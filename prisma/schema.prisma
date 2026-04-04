@@ -74,3 +74,24 @@ model Report {
   
   @@map("reports")
 }
+
+// Table des backlogs (projets et sprints)
+model Backlog {
+  id          String    @id @default(cuid())
+  title       String
+  backlogType String    @default("task") @map("backlog_type") // "folder", "task", "subtask"
+  type        String    // "project" ou "sprint"
+  description String?   @db.Text
+  position    Int       @default(0)
+  parentId    String?   @map("parent_id")
+  userId      String    @map("user_id")
+  highlightColor String? @map("highlight_color")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  parent   Backlog?  @relation("BacklogTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Backlog[] @relation("BacklogTree")
+  
+  @@unique([userId, title, parentId])
+  @@map("backlogs")
+}
