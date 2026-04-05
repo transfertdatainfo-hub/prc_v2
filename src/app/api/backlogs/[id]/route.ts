@@ -1,85 +1,84 @@
-// src/app/api/backlogs/[id]/route.ts
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+const userId = 'user-1';
 
-const DEFAULT_USER_ID = "user-1";
-
+// GET - Récupérer un backlog spécifique
 export async function GET(
-  req: NextRequest,
+  request: Request,
   { params }: { params: { id: string } }
 ) {
-  const backlog = await prisma.backlog.findFirst({
-    where: { id: params.id, userId: DEFAULT_USER_ID },
-  });
-
-  if (!backlog) {
-    return NextResponse.json({ error: "Non trouvé" }, { status: 404 });
-  }
-
-  return NextResponse.json(backlog);
-}
-
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const body = await req.json();
-  const { title, description, parentId, position, type, highlightColor, backlogType } = body;
-
-  const existing = await prisma.backlog.findFirst({
-    where: { id: params.id, userId: DEFAULT_USER_ID },
-  });
-
-  if (!existing) {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  }
-
   try {
-    const backlog = await prisma.backlog.update({
-      where: { id: params.id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(parentId !== undefined && { parentId }),
-        ...(position !== undefined && { position }),
-        ...(type !== undefined && { type }),
-        ...(highlightColor !== undefined && { highlightColor }),
-        ...(backlogType !== undefined && { backlogType }),
-      },
+    const backlog = await prisma.backlog.findFirst({
+      where: { id: params.id, userId }
     });
+
+    if (!backlog) {
+      return NextResponse.json({ error: 'Backlog non trouvé' }, { status: 404 });
+    }
+
     return NextResponse.json(backlog);
   } catch (error) {
-    return NextResponse.json(
-      { error: "Erreur lors de la mise à jour" },
-      { status: 500 }
-    );
+    console.error('Erreur GET:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
+// PUT - Mettre à jour un backlog
+export async function PUT(
+  request: Request,
   { params }: { params: { id: string } }
 ) {
-  const existing = await prisma.backlog.findFirst({
-    where: { id: params.id, userId: DEFAULT_USER_ID },
-  });
+  try {
+    const body = await request.json();
+    const { title, description, parentId, type, backlogType, highlightColor, status } = body;
 
-  if (!existing) {
-    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (parentId !== undefined) updateData.parentId = parentId || null;
+    if (type !== undefined) updateData.type = type;
+    if (backlogType !== undefined) updateData.backlogType = backlogType;
+    if (highlightColor !== undefined) updateData.highlightColor = highlightColor;
+    if (status !== undefined) updateData.status = status;
+
+    const updated = await prisma.backlog.update({
+      where: { id: params.id },
+      data: updateData
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Erreur PUT:', error);
+    return NextResponse.json({ error: 'Erreur lors de la mise à jour' }, { status: 500 });
   }
+}
 
-  const children = await prisma.backlog.findMany({
-    where: { parentId: params.id },
-  });
+// DELETE - Supprimer un backlog
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // Vérifier si l'item a des enfants
+    const children = await prisma.backlog.count({
+      where: { parentId: params.id }
+    });
 
-  if (children.length > 0) {
-    return NextResponse.json(
-      { error: "Impossible de supprimer un nœud qui contient des sous-éléments" },
-      { status: 400 }
-    );
+    if (children > 0) {
+      return NextResponse.json(
+        { error: 'Impossible de supprimer un élément qui a des enfants' },
+        { status: 400 }
+      );
+    }
+
+    await prisma.backlog.delete({
+      where: { id: params.id }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Erreur DELETE:', error);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
-
-  await prisma.backlog.delete({ where: { id: params.id } });
-  return NextResponse.json({ success: true });
 }

@@ -15,7 +15,55 @@ import {
   ChevronRight,
   ChevronDown,
   X,
+  Rocket,
+  CheckCircle,
+  Clock,
+  Play,
+  XCircle,
+  Pencil,
+  Archive,
 } from "lucide-react";
+
+// Types de statuts
+type Status =
+  | "draft"
+  | "ready"
+  | "active"
+  | "in_progress"
+  | "done"
+  | "cancelled";
+
+const STATUS_CONFIG: Record<
+  Status,
+  { label: string; color: string; icon: any }
+> = {
+  draft: {
+    label: "En construction",
+    color: "bg-gray-100 text-gray-600",
+    icon: Pencil,
+  },
+  ready: {
+    label: "Prêt",
+    color: "bg-green-100 text-green-700",
+    icon: CheckCircle,
+  },
+  active: { label: "Actif", color: "bg-blue-100 text-blue-700", icon: Clock },
+  in_progress: {
+    label: "En cours",
+    color: "bg-yellow-100 text-yellow-700",
+    icon: Play,
+  },
+  done: {
+    label: "Terminé",
+    color: "bg-emerald-100 text-emerald-700",
+    icon: CheckCircle,
+  },
+  cancelled: {
+    label: "Annulé",
+    color: "bg-red-100 text-red-700",
+    icon: XCircle,
+  },
+};
 
 // Couleurs disponibles pour la surbrillance
 const HIGHLIGHT_COLORS = [
@@ -127,8 +175,65 @@ function ColorPalette({
   );
 }
 
-// Composant TreeNode
-function BacklogTreeNode({
+// Menu déroulant des statuts
+function StatusDropdown({
+  status,
+  onStatusChange,
+}: {
+  status: Status;
+  onStatusChange: (newStatus: Status) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${STATUS_CONFIG[status].color}`}
+      >
+        {(() => {
+          const Icon = STATUS_CONFIG[status].icon;
+          return <Icon className="w-3 h-3" />;
+        })()}
+        <span>{STATUS_CONFIG[status].label}</span>
+      </button>
+      {isOpen && (
+        <div className="absolute z-20 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 min-w-[130px]">
+          {(
+            Object.entries(STATUS_CONFIG) as [
+              Status,
+              (typeof STATUS_CONFIG)[Status],
+            ][]
+          ).map(([value, config]) => (
+            <button
+              key={value}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStatusChange(value);
+                setIsOpen(false);
+              }}
+              className={`w-full text-left px-3 py-1.5 rounded-md text-xs flex items-center gap-2 hover:bg-gray-100 ${
+                status === value ? "bg-gray-50" : ""
+              }`}
+            >
+              {(() => {
+                const Icon = config.icon;
+                return <Icon className="w-3 h-3" />;
+              })()}
+              <span>{config.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Composant TreeNode pour le Project Backlog
+function ProjectTreeNode({
   node,
   level,
   expandedNodes,
@@ -143,25 +248,29 @@ function BacklogTreeNode({
   onDragOver,
   onDrop,
   dragOverId,
-  selectedItems,
-  onSelectItem,
-  listType,
+  onAssignToSprint,
+  isInSprint,
+  onStatusChange,
 }: any) {
   const isExpanded = expandedNodes.has(node.id);
   const isDragOver = dragOverId === node.id;
-  const isSelected = selectedItems.has(node.id);
   const hasHighlight = node.highlightColor;
   const Icon =
     TYPE_ICONS[node.backlogType as keyof typeof TYPE_ICONS] || Folder;
   const config = TYPE_CONFIG[node.backlogType as keyof typeof TYPE_CONFIG];
+  const StatusIcon = STATUS_CONFIG[node.status as Status]?.icon || Clock;
 
   return (
     <div>
       <div
-        draggable={true}
+        draggable={node.backlogType !== "folder"}
         onDragStart={(e) => {
+          if (node.backlogType === "folder") {
+            e.preventDefault();
+            return;
+          }
           e.stopPropagation();
-          onDragStart(node.id, listType);
+          onDragStart(node.id, "project");
         }}
         onDragOver={(e) => {
           e.preventDefault();
@@ -175,23 +284,18 @@ function BacklogTreeNode({
         onDrop={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          onDrop(e, node.id, listType);
+          onDrop(e, node.id, "project");
         }}
         className={`
           group flex items-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer
           hover:bg-gray-100
           ${isDragOver ? "bg-blue-50 border-2 border-blue-300" : ""}
-          ${isSelected ? "bg-blue-100 border-l-4 border-blue-500" : ""}
           ${hasHighlight ? "border-l-4" : ""}
         `}
         style={{
           marginLeft: `${level * 20}px`,
           borderLeftColor: hasHighlight || undefined,
           backgroundColor: hasHighlight || undefined,
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelectItem(node.id, e.ctrlKey || e.metaKey);
         }}
       >
         <div className="flex items-center gap-1 cursor-grab" title="Déplacer">
@@ -219,7 +323,25 @@ function BacklogTreeNode({
           className={`w-4 h-4 ${iconColors[node.backlogType as keyof typeof iconColors] || "text-gray-500"} flex-shrink-0`}
         />
 
-        <span className="flex-1 text-sm text-gray-700">{node.title}</span>
+        <span className="flex-1 text-sm text-gray-700 flex items-center gap-2">
+          {node.title}
+          {isInSprint && (
+            <span className="inline-flex items-center gap-1 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+              <Rocket className="w-3 h-3" />
+              Sprint
+            </span>
+          )}
+        </span>
+
+        {/* Badge statut */}
+        {node.backlogType !== "folder" && node.status && (
+          <StatusDropdown
+            status={node.status}
+            onStatusChange={(newStatus: Status) =>
+              onStatusChange(node.id, newStatus)
+            }
+          />
+        )}
 
         <div className="opacity-0 group-hover:opacity-100 flex gap-1 flex-shrink-0">
           <div className="relative">
@@ -234,6 +356,22 @@ function BacklogTreeNode({
               <Highlighter className="w-3 h-3" />
             </button>
           </div>
+
+          {/* Bouton Affecter au Sprint */}
+          {node.backlogType !== "folder" &&
+            !isInSprint &&
+            node.status === "ready" && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAssignToSprint(node);
+                }}
+                className="p-1 text-purple-400 hover:text-purple-600 rounded"
+                title="Affecter au Sprint"
+              >
+                <Rocket className="w-3 h-3" />
+              </button>
+            )}
 
           <button
             onClick={(e) => {
@@ -297,7 +435,7 @@ function BacklogTreeNode({
       {isExpanded && node.children.length > 0 && (
         <div>
           {node.children.map((child: BacklogNode) => (
-            <BacklogTreeNode
+            <ProjectTreeNode
               key={child.id}
               node={child}
               level={level + 1}
@@ -313,9 +451,9 @@ function BacklogTreeNode({
               onDragOver={onDragOver}
               onDrop={onDrop}
               dragOverId={dragOverId}
-              selectedItems={selectedItems}
-              onSelectItem={onSelectItem}
-              listType={listType}
+              onAssignToSprint={onAssignToSprint}
+              isInSprint={isInSprint}
+              onStatusChange={onStatusChange}
             />
           ))}
         </div>
@@ -324,10 +462,119 @@ function BacklogTreeNode({
   );
 }
 
-// Composant BacklogList
-function BacklogList({
-  title,
-  type,
+// Composant SprintItem (liste plate)
+function SprintItem({
+  item,
+  index,
+  onEdit,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  dragOverId,
+  onStatusChange,
+}: any) {
+  const isDragOver = dragOverId === item.id;
+  const StatusIcon = STATUS_CONFIG[item.status as Status]?.icon || Clock;
+
+  return (
+    <div
+      draggable={true}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        onDragStart(item.id, "sprint");
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDragOver(e, item.id);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        onDragOver(null, null);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDrop(e, item.id, "sprint");
+      }}
+      className={`
+        group flex items-center gap-2 px-3 py-2 rounded-lg transition-all bg-white border border-gray-200
+        hover:bg-gray-50
+        ${isDragOver ? "bg-blue-50 border-2 border-blue-300" : ""}
+      `}
+    >
+      <div className="flex items-center gap-1 cursor-grab" title="Déplacer">
+        <GripVertical className="w-4 h-4 text-gray-400" />
+      </div>
+
+      <span className="text-xs text-gray-400 w-6">{index + 1}</span>
+
+      <span className="flex-1 text-sm text-gray-700">{item.title}</span>
+
+      {/* Badge statut */}
+      {item.status && (
+        <StatusDropdown
+          status={item.status}
+          onStatusChange={(newStatus: Status) =>
+            onStatusChange(item.id, newStatus)
+          }
+        />
+      )}
+
+      <div className="opacity-0 group-hover:opacity-100 flex gap-1 flex-shrink-0">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(item);
+          }}
+          className="p-1 text-gray-400 hover:text-blue-500 rounded"
+          title="Modifier"
+        >
+          <Edit2 className="w-3 h-3" />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(item.id);
+          }}
+          className="p-1 text-gray-400 hover:text-red-500 rounded"
+          title="Retirer du Sprint"
+        >
+          <X className="w-3 h-3" />
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveUp(item.id);
+          }}
+          className="p-1 text-gray-400 hover:text-gray-700 rounded"
+          title="Monter"
+        >
+          ↑
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onMoveDown(item.id);
+          }}
+          className="p-1 text-gray-400 hover:text-gray-700 rounded"
+          title="Descendre"
+        >
+          ↓
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Composant ProjectBacklogList
+function ProjectBacklogList({
   items,
   onAddRoot,
   onEdit,
@@ -337,23 +584,10 @@ function BacklogList({
   onMoveUp,
   onMoveDown,
   onMoveBetweenLists,
-  selectedItems,
-  onSelectItem,
-}: {
-  title: string;
-  type: "project" | "sprint";
-  items: BacklogNode[];
-  onAddRoot: (type: string) => void;
-  onEdit: (node: BacklogNode) => void;
-  onDelete: (id: string, title: string, hasChildren: boolean) => void;
-  onAddChild: (parent: BacklogNode) => void;
-  onHighlight: (id: string, currentColor: string | null) => void;
-  onMoveUp: (id: string) => void;
-  onMoveDown: (id: string) => void;
-  onMoveBetweenLists: (itemIds: string[], targetListType: string) => void;
-  selectedItems: Set<string>;
-  onSelectItem: (id: string, multiSelect: boolean) => void;
-}) {
+  onAssignToSprint,
+  sprintItemIds,
+  onStatusChange,
+}: any) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragItem, setDragItem] = useState<{
@@ -403,16 +637,13 @@ function BacklogList({
     if (e) e.preventDefault();
     setDragOverId(null);
     if (!dragItem) return;
-
-    if (dragItem.sourceType === targetType) {
-      onMoveBetweenLists([dragItem.id], targetType);
-    } else {
+    if (dragItem.sourceType !== targetType) {
       onMoveBetweenLists([dragItem.id], targetType);
     }
     setDragItem(null);
   };
 
-  const handleHighlightClick = (id: string, currentColor: string | null) => {
+  const handleHighlightClick = (id: string) => {
     setHighlightTarget(highlightTarget === id ? null : id);
   };
 
@@ -420,11 +651,11 @@ function BacklogList({
     <div className="w-1/2 bg-white border-r border-gray-200 flex flex-col">
       <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <span>📋</span>
-          {title}
+          <Folder className="w-5 h-5 text-amber-500" />
+          Project Backlog
         </h2>
         <button
-          onClick={() => onAddRoot(type)}
+          onClick={() => onAddRoot("project")}
           className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
           title="Ajouter un item backlog"
         >
@@ -438,7 +669,7 @@ function BacklogList({
             <Folder className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>Aucun item backlog</p>
             <button
-              onClick={() => onAddRoot(type)}
+              onClick={() => onAddRoot("project")}
               className="mt-3 text-sm text-blue-500 hover:text-blue-600"
             >
               + Ajouter un item backlog
@@ -446,9 +677,9 @@ function BacklogList({
           </div>
         ) : (
           <div className="space-y-1">
-            {items.map((node) => (
+            {items.map((node: BacklogNode) => (
               <div key={node.id} className="relative">
-                <BacklogTreeNode
+                <ProjectTreeNode
                   node={node}
                   level={0}
                   expandedNodes={expandedNodes}
@@ -456,18 +687,16 @@ function BacklogList({
                   onEdit={onEdit}
                   onDelete={onDelete}
                   onAddChild={onAddChild}
-                  onHighlight={() =>
-                    handleHighlightClick(node.id, node.highlightColor)
-                  }
+                  onHighlight={() => handleHighlightClick(node.id)}
                   onMoveUp={onMoveUp}
                   onMoveDown={onMoveDown}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   dragOverId={dragOverId}
-                  selectedItems={selectedItems}
-                  onSelectItem={onSelectItem}
-                  listType={type}
+                  onAssignToSprint={onAssignToSprint}
+                  isInSprint={sprintItemIds?.has(node.id)}
+                  onStatusChange={onStatusChange}
                 />
                 {highlightTarget === node.id && (
                   <div
@@ -494,12 +723,146 @@ function BacklogList({
           </div>
         )}
       </div>
+    </div>
+  );
+}
 
-      {selectedItems.size > 0 && (
-        <div className="p-2 border-t border-gray-200 bg-gray-50 text-xs text-gray-500">
-          {selectedItems.size} élément(s) sélectionné(s)
-        </div>
-      )}
+// Composant SprintBacklogList
+function SprintBacklogList({
+  items,
+  onEdit,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  onReorder,
+  onStatusChange,
+  onCloseSprint,
+  sprintStatus,
+}: any) {
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [dragItem, setDragItem] = useState<{
+    id: string;
+    sourceType: string;
+  } | null>(null);
+
+  const handleDragStart = (id: string, sourceType: string) => {
+    setDragItem({ id, sourceType });
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    if (e) e.preventDefault();
+    setDragOverId(id);
+  };
+
+  const handleDrop = async (
+    e: React.DragEvent,
+    targetId: string,
+    targetType: string,
+  ) => {
+    if (e) e.preventDefault();
+    setDragOverId(null);
+    if (!dragItem) return;
+    if (dragItem.sourceType === "project") {
+      // Venir du project backlog
+      const item = items.find((i: any) => i.id === dragItem.id);
+      if (item) {
+        onRemove(dragItem.id);
+      }
+    } else {
+      // Réorganisation interne
+      const oldIndex = items.findIndex((i: any) => i.id === dragItem.id);
+      const newIndex = items.findIndex((i: any) => i.id === targetId);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newItems = [...items];
+        const [movedItem] = newItems.splice(oldIndex, 1);
+        newItems.splice(newIndex, 0, movedItem);
+        onReorder(
+          newItems.map((item: any, idx: number) => ({
+            id: item.id,
+            position: idx,
+          })),
+        );
+      }
+    }
+    setDragItem(null);
+  };
+
+  const canClose = items.every(
+    (item: any) => item.status === "done" || item.status === "cancelled",
+  );
+
+  return (
+    <div className="w-1/2 bg-white flex flex-col">
+      <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <Rocket className="w-5 h-5 text-purple-500" />
+          Sprint Backlog
+          {items.length > 0 && (
+            <span className="text-sm font-normal text-gray-400 ml-2">
+              ({items.length} item{items.length > 1 ? "s" : ""})
+            </span>
+          )}
+        </h2>
+        {items.length > 0 && (
+          <button
+            onClick={() => {
+              if (canClose) {
+                onCloseSprint();
+              } else {
+                alert(
+                  "Impossible de clôturer le sprint : tous les items doivent être 'Terminé' ou 'Annulé'.",
+                );
+              }
+            }}
+            className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 transition-colors ${
+              canClose
+                ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                : "bg-gray-200 text-gray-500 cursor-not-allowed"
+            }`}
+            disabled={!canClose}
+            title={
+              !canClose
+                ? "Tous les items doivent être 'Terminé' ou 'Annulé'"
+                : "Clôturer le sprint"
+            }
+          >
+            <Archive className="w-4 h-4" />
+            Clôturer le Sprint
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {items.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <Rocket className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>Aucun item dans le sprint</p>
+            <p className="text-sm mt-1">
+              Affectez des items depuis le Project Backlog (bouton{" "}
+              <Rocket className="w-3 h-3 inline" />)
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map((item: BacklogNode, index: number) => (
+              <SprintItem
+                key={item.id}
+                item={item}
+                index={index}
+                onEdit={onEdit}
+                onRemove={onRemove}
+                onMoveUp={() => onMoveUp(item.id)}
+                onMoveDown={() => onMoveDown(item.id)}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                dragOverId={dragOverId}
+                onStatusChange={onStatusChange}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -508,23 +871,37 @@ function BacklogList({
 export default function BacklogsPage() {
   const router = useRouter();
   const [projectBacklogs, setProjectBacklogs] = useState<BacklogNode[]>([]);
-  const [sprintBacklogs, setSprintBacklogs] = useState<BacklogNode[]>([]);
+  const [sprintItems, setSprintItems] = useState<BacklogNode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProjectItems, setSelectedProjectItems] = useState<Set<string>>(
-    new Set(),
-  );
-  const [selectedSprintItems, setSelectedSprintItems] = useState<Set<string>>(
-    new Set(),
-  );
+  const [sprintId, setSprintId] = useState<string | null>(null);
+  const [sprintStatus, setSprintStatus] = useState<string>("active");
 
   const fetchBacklogs = useCallback(async () => {
     try {
+      // Récupérer tous les backlogs
       const res = await fetch("/api/backlogs");
       const data = await res.json();
+
+      // Séparer project et sprint
       const projects = data.filter((b: Backlog) => b.type === "project");
-      const sprints = data.filter((b: Backlog) => b.type === "sprint");
       setProjectBacklogs(buildBacklogTree(projects));
-      setSprintBacklogs(buildBacklogTree(sprints));
+
+      // Récupérer le sprint actif
+      const sprintRes = await fetch("/api/sprints/active");
+      const sprint = await sprintRes.json();
+
+      if (sprint) {
+        setSprintId(sprint.id);
+        setSprintStatus(sprint.status);
+
+        // Récupérer les items du sprint
+        const sprintItemsRes = await fetch(`/api/sprints/${sprint.id}/items`);
+        const sprintItemsData = await sprintItemsRes.json();
+        setSprintItems(sprintItemsData);
+      } else {
+        setSprintItems([]);
+        setSprintId(null);
+      }
     } catch (error) {
       console.error("Erreur chargement backlogs:", error);
     } finally {
@@ -535,6 +912,120 @@ export default function BacklogsPage() {
   useEffect(() => {
     fetchBacklogs();
   }, [fetchBacklogs]);
+
+  const assignToSprint = async (item: BacklogNode) => {
+    if (!sprintId) {
+      // Créer un nouveau sprint
+      const createRes = await fetch("/api/sprints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `Sprint du ${new Date().toLocaleDateString()}`,
+        }),
+      });
+      const newSprint = await createRes.json();
+      setSprintId(newSprint.id);
+      setSprintStatus("active");
+
+      // Ajouter l'item
+      await fetch(`/api/sprints/${newSprint.id}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backlogId: item.id, position: 0 }),
+      });
+    } else {
+      // Vérifier si déjà dans le sprint
+      const alreadyInSprint = sprintItems.some((i) => i.id === item.id);
+      if (alreadyInSprint) {
+        alert("Cet item est déjà dans le sprint");
+        return;
+      }
+
+      // Ajouter à la fin
+      await fetch(`/api/sprints/${sprintId}/items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          backlogId: item.id,
+          position: sprintItems.length,
+        }),
+      });
+    }
+
+    await fetchBacklogs();
+  };
+
+  const removeFromSprint = async (itemId: string) => {
+    if (!sprintId) return;
+    await fetch(`/api/sprints/${sprintId}/items/${itemId}`, {
+      method: "DELETE",
+    });
+    await fetchBacklogs();
+  };
+
+  const reorderSprintItems = async (
+    items: { id: string; position: number }[],
+  ) => {
+    if (!sprintId) return;
+    await fetch(`/api/sprints/${sprintId}/items/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+    await fetchBacklogs();
+  };
+
+  const moveSprintItemUp = async (id: string) => {
+    const index = sprintItems.findIndex((item) => item.id === id);
+    if (index <= 0) return;
+    const newItems = [...sprintItems];
+    [newItems[index - 1], newItems[index]] = [
+      newItems[index],
+      newItems[index - 1],
+    ];
+    await reorderSprintItems(
+      newItems.map((item, idx) => ({ id: item.id, position: idx })),
+    );
+  };
+
+  const moveSprintItemDown = async (id: string) => {
+    const index = sprintItems.findIndex((item) => item.id === id);
+    if (index === -1 || index >= sprintItems.length - 1) return;
+    const newItems = [...sprintItems];
+    [newItems[index], newItems[index + 1]] = [
+      newItems[index + 1],
+      newItems[index],
+    ];
+    await reorderSprintItems(
+      newItems.map((item, idx) => ({ id: item.id, position: idx })),
+    );
+  };
+
+  const updateStatus = async (id: string, status: Status) => {
+    await fetch(`/api/backlogs/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await fetchBacklogs();
+  };
+
+  const closeSprint = async () => {
+    if (!sprintId) return;
+    const canClose = sprintItems.every(
+      (item) => item.status === "done" || item.status === "cancelled",
+    );
+    if (!canClose) {
+      alert(
+        "Impossible de clôturer le sprint : tous les items doivent être 'Terminé' ou 'Annulé'.",
+      );
+      return;
+    }
+    await fetch(`/api/sprints/${sprintId}/close`, { method: "POST" });
+    setSprintId(null);
+    setSprintItems([]);
+    await fetchBacklogs();
+  };
 
   const deleteBacklog = async (
     id: string,
@@ -553,8 +1044,6 @@ export default function BacklogsPage() {
       const res = await fetch(`/api/backlogs/${id}`, { method: "DELETE" });
       if (res.ok) {
         await fetchBacklogs();
-        setSelectedProjectItems(new Set());
-        setSelectedSprintItems(new Set());
       } else {
         const error = await res.json();
         alert(error.error || "Erreur lors de la suppression");
@@ -564,20 +1053,25 @@ export default function BacklogsPage() {
     }
   };
 
-  const moveItem = async (
-    itemId: string,
-    newParentId: string | null,
-    newType: string,
-  ) => {
-    try {
-      await fetch(`/api/backlogs/${itemId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parentId: newParentId, type: newType }),
-      });
-      await fetchBacklogs();
-    } catch (error) {
-      console.error("Erreur déplacement:", error);
+  const moveBetweenLists = async (itemIds: string[], targetType: string) => {
+    for (const id of itemIds) {
+      if (targetType === "sprint") {
+        const item = projectBacklogs
+          .flatMap((n) => {
+            const flatten = (nodes: BacklogNode[]): BacklogNode[] => {
+              let result: BacklogNode[] = [];
+              nodes.forEach((node) => {
+                result.push(node);
+                if (node.children.length)
+                  result = [...result, ...flatten(node.children)];
+              });
+              return result;
+            };
+            return flatten([n]);
+          })
+          .find((n) => n.id === id);
+        if (item) await assignToSprint(item);
+      }
     }
   };
 
@@ -595,7 +1089,12 @@ export default function BacklogsPage() {
   };
 
   const moveUp = async (id: string, type: string) => {
-    const list = type === "project" ? projectBacklogs : sprintBacklogs;
+    if (type === "sprint") {
+      await moveSprintItemUp(id);
+      return;
+    }
+
+    const list = projectBacklogs;
     const flatItems: BacklogNode[] = [];
     const flatten = (nodes: BacklogNode[]) => {
       nodes.forEach((node) => {
@@ -618,7 +1117,12 @@ export default function BacklogsPage() {
   };
 
   const moveDown = async (id: string, type: string) => {
-    const list = type === "project" ? projectBacklogs : sprintBacklogs;
+    if (type === "sprint") {
+      await moveSprintItemDown(id);
+      return;
+    }
+
+    const list = projectBacklogs;
     const flatItems: BacklogNode[] = [];
     const flatten = (nodes: BacklogNode[]) => {
       nodes.forEach((node) => {
@@ -653,56 +1157,6 @@ export default function BacklogsPage() {
     }
   };
 
-  const moveBetweenLists = async (itemIds: string[], targetType: string) => {
-    for (const id of itemIds) {
-      await moveItem(id, null, targetType);
-    }
-    setSelectedProjectItems(new Set());
-    setSelectedSprintItems(new Set());
-  };
-
-  const handleSelectProjectItem = (id: string, multiSelect: boolean) => {
-    setSelectedProjectItems((prev) => {
-      const newSet = new Set(prev);
-      if (multiSelect) {
-        if (newSet.has(id)) {
-          newSet.delete(id);
-        } else {
-          newSet.add(id);
-        }
-      } else {
-        if (newSet.has(id) && newSet.size === 1) {
-          newSet.delete(id);
-        } else {
-          newSet.clear();
-          newSet.add(id);
-        }
-      }
-      return newSet;
-    });
-  };
-
-  const handleSelectSprintItem = (id: string, multiSelect: boolean) => {
-    setSelectedSprintItems((prev) => {
-      const newSet = new Set(prev);
-      if (multiSelect) {
-        if (newSet.has(id)) {
-          newSet.delete(id);
-        } else {
-          newSet.add(id);
-        }
-      } else {
-        if (newSet.has(id) && newSet.size === 1) {
-          newSet.delete(id);
-        } else {
-          newSet.clear();
-          newSet.add(id);
-        }
-      }
-      return newSet;
-    });
-  };
-
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
@@ -716,57 +1170,47 @@ export default function BacklogsPage() {
       <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
         <h1 className="text-xl font-semibold text-gray-800">Backlogs</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Gérez vos items par projet et par sprint
+          Gérez vos items de développement. Les items &quot;Prêt&quot; peuvent
+          être affectés au sprint.
         </p>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <BacklogList
-          title="Project Backlog"
-          type="project"
+        <ProjectBacklogList
           items={projectBacklogs}
-          onAddRoot={(type) => {
+          onAddRoot={(type: string) => {
             router.push(`/backlogs/new?type=${type}`);
           }}
-          onEdit={(node) => {
+          onEdit={(node: BacklogNode) => {
             router.push(`/backlogs/${node.id}`);
           }}
           onDelete={deleteBacklog}
-          onAddChild={(parent) => {
+          onAddChild={(parent: BacklogNode) => {
             router.push(
               `/backlogs/new?parentId=${parent.id}&type=${parent.type}`,
             );
           }}
           onHighlight={updateHighlight}
-          onMoveUp={(id) => moveUp(id, "project")}
-          onMoveDown={(id) => moveDown(id, "project")}
+          onMoveUp={(id: string) => moveUp(id, "project")}
+          onMoveDown={(id: string) => moveDown(id, "project")}
           onMoveBetweenLists={moveBetweenLists}
-          selectedItems={selectedProjectItems}
-          onSelectItem={handleSelectProjectItem}
+          onAssignToSprint={assignToSprint}
+          sprintItemIds={new Set(sprintItems.map((i) => i.id))}
+          onStatusChange={updateStatus}
         />
 
-        <BacklogList
-          title="Sprint Backlog"
-          type="sprint"
-          items={sprintBacklogs}
-          onAddRoot={(type) => {
-            router.push(`/backlogs/new?type=${type}`);
-          }}
-          onEdit={(node) => {
+        <SprintBacklogList
+          items={sprintItems}
+          onEdit={(node: BacklogNode) => {
             router.push(`/backlogs/${node.id}`);
           }}
-          onDelete={deleteBacklog}
-          onAddChild={(parent) => {
-            router.push(
-              `/backlogs/new?parentId=${parent.id}&type=${parent.type}`,
-            );
-          }}
-          onHighlight={updateHighlight}
-          onMoveUp={(id) => moveUp(id, "sprint")}
-          onMoveDown={(id) => moveDown(id, "sprint")}
-          onMoveBetweenLists={moveBetweenLists}
-          selectedItems={selectedSprintItems}
-          onSelectItem={handleSelectSprintItem}
+          onRemove={removeFromSprint}
+          onMoveUp={(id: string) => moveSprintItemUp(id)}
+          onMoveDown={(id: string) => moveSprintItemDown(id)}
+          onReorder={reorderSprintItems}
+          onStatusChange={updateStatus}
+          onCloseSprint={closeSprint}
+          sprintStatus={sprintStatus}
         />
       </div>
     </div>

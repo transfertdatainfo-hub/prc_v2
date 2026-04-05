@@ -1,20 +1,18 @@
-// src/types/Backlog.ts
-
-export interface Backlog {
+export type Backlog = {
   id: string;
   title: string;
-  backlogType: "folder" | "task" | "subtask";
-  type: "project" | "sprint";
-  description: string | null;
+  backlogType: 'folder' | 'task' | 'subtask';
+  type: 'project' | 'sprint';
+  description?: string | null;
   position: number;
-  parentId: string | null;
+  parentId?: string | null;
   userId: string;
-  highlightColor: string | null;
+  highlightColor?: string | null;
+  status?: 'draft' | 'ready' | 'active' | 'in_progress' | 'done' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
-  children?: Backlog[];
-}
+};
 
-export interface BacklogNode extends Backlog {
+export type BacklogNode = Backlog & {
   children: BacklogNode[];
-}
+};

@@ -75,23 +75,52 @@ model Report {
   @@map("reports")
 }
 
-// Table des backlogs (projets et sprints)
+
 model Backlog {
   id          String    @id @default(cuid())
   title       String
-  backlogType String    @default("task") @map("backlog_type") // "folder", "task", "subtask"
-  type        String    // "project" ou "sprint"
+  backlogType String    @default("task") @map("backlog_type")
+  type        String
   description String?   @db.Text
   position    Int       @default(0)
   parentId    String?   @map("parent_id")
   userId      String    @map("user_id")
   highlightColor String? @map("highlight_color")
+  status      String    @default("draft")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   
   parent   Backlog?  @relation("BacklogTree", fields: [parentId], references: [id], onDelete: SetNull)
   children Backlog[] @relation("BacklogTree")
   
+  sprintItems SprintItem[]
+  
   @@unique([userId, title, parentId])
   @@map("backlogs")
+}
+
+model Sprint {
+  id        String       @id @default(cuid())
+  name      String
+  userId    String       @map("user_id")
+  status    String       @default("active")
+  items     SprintItem[]
+  createdAt DateTime     @default(now()) @map("created_at")
+  endedAt   DateTime?    @map("ended_at")
+  
+  @@map("sprints")
+}
+
+model SprintItem {
+  id        String   @id @default(cuid())
+  sprintId  String   @map("sprint_id")
+  backlogId String   @map("backlog_id")
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  sprint  Sprint  @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  backlog Backlog @relation(fields: [backlogId], references: [id], onDelete: Cascade)
+  
+  @@unique([sprintId, backlogId])
+  @@map("sprint_items")
 }
