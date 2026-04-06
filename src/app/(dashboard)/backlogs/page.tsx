@@ -22,6 +22,7 @@ import {
   XCircle,
   Pencil,
   Archive,
+  History,
 } from "lucide-react";
 
 // Types de statuts
@@ -179,9 +180,11 @@ function ColorPalette({
 function StatusDropdown({
   status,
   onStatusChange,
+  disabled = false,
 }: {
   status: Status;
   onStatusChange: (newStatus: Status) => void;
+  disabled?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -190,9 +193,12 @@ function StatusDropdown({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          setIsOpen(!isOpen);
+          if (!disabled) setIsOpen(!isOpen);
         }}
-        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${STATUS_CONFIG[status].color}`}
+        disabled={disabled}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${
+          STATUS_CONFIG[status].color
+        } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {(() => {
           const Icon = STATUS_CONFIG[status].icon;
@@ -200,7 +206,7 @@ function StatusDropdown({
         })()}
         <span>{STATUS_CONFIG[status].label}</span>
       </button>
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-20 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-1 min-w-[130px]">
           {(
             Object.entries(STATUS_CONFIG) as [
@@ -232,8 +238,8 @@ function StatusDropdown({
   );
 }
 
-// Composant TreeNode pour le Project Backlog
-function ProjectTreeNode({
+// Composant TreeNode pour le Product Backlog
+function ProductTreeNode({
   node,
   level,
   expandedNodes,
@@ -251,6 +257,7 @@ function ProjectTreeNode({
   onAssignToSprint,
   isInSprint,
   onStatusChange,
+  sprintActive,
 }: any) {
   const isExpanded = expandedNodes.has(node.id);
   const isDragOver = dragOverId === node.id;
@@ -258,19 +265,18 @@ function ProjectTreeNode({
   const Icon =
     TYPE_ICONS[node.backlogType as keyof typeof TYPE_ICONS] || Folder;
   const config = TYPE_CONFIG[node.backlogType as keyof typeof TYPE_CONFIG];
-  const StatusIcon = STATUS_CONFIG[node.status as Status]?.icon || Clock;
 
   return (
     <div>
       <div
-        draggable={node.backlogType !== "folder"}
+        draggable={node.backlogType !== "folder" && sprintActive}
         onDragStart={(e) => {
-          if (node.backlogType === "folder") {
+          if (node.backlogType === "folder" || !sprintActive) {
             e.preventDefault();
             return;
           }
           e.stopPropagation();
-          onDragStart(node.id, "project");
+          onDragStart(node.id, "product");
         }}
         onDragOver={(e) => {
           e.preventDefault();
@@ -284,13 +290,14 @@ function ProjectTreeNode({
         onDrop={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          onDrop(e, node.id, "project");
+          onDrop(e, node.id, "product");
         }}
         className={`
           group flex items-center gap-2 px-3 py-2 rounded-lg transition-all cursor-pointer
           hover:bg-gray-100
           ${isDragOver ? "bg-blue-50 border-2 border-blue-300" : ""}
           ${hasHighlight ? "border-l-4" : ""}
+          ${!sprintActive ? "opacity-60" : ""}
         `}
         style={{
           marginLeft: `${level * 20}px`,
@@ -340,6 +347,7 @@ function ProjectTreeNode({
             onStatusChange={(newStatus: Status) =>
               onStatusChange(node.id, newStatus)
             }
+            disabled={isInSprint}
           />
         )}
 
@@ -357,10 +365,13 @@ function ProjectTreeNode({
             </button>
           </div>
 
-          {/* Bouton Affecter au Sprint */}
-          {node.backlogType !== "folder" &&
+          {/* Bouton Affecter au Sprint - MODIFIÉ : tous les statuts sauf draft */}
+          {sprintActive &&
+            node.backlogType !== "folder" &&
             !isInSprint &&
-            node.status === "ready" && (
+            ["ready", "active", "in_progress", "done", "cancelled"].includes(
+              node.status,
+            ) && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -435,7 +446,7 @@ function ProjectTreeNode({
       {isExpanded && node.children.length > 0 && (
         <div>
           {node.children.map((child: BacklogNode) => (
-            <ProjectTreeNode
+            <ProductTreeNode
               key={child.id}
               node={child}
               level={level + 1}
@@ -454,6 +465,7 @@ function ProjectTreeNode({
               onAssignToSprint={onAssignToSprint}
               isInSprint={isInSprint}
               onStatusChange={onStatusChange}
+              sprintActive={sprintActive}
             />
           ))}
         </div>
@@ -462,7 +474,8 @@ function ProjectTreeNode({
   );
 }
 
-// Composant SprintItem (liste plate)
+//ici
+// Composant SprintItem (liste plate avec Drag & Drop)
 function SprintItem({
   item,
   index,
@@ -475,14 +488,18 @@ function SprintItem({
   onDrop,
   dragOverId,
   onStatusChange,
+  sprintActive,
 }: any) {
   const isDragOver = dragOverId === item.id;
-  const StatusIcon = STATUS_CONFIG[item.status as Status]?.icon || Clock;
 
   return (
     <div
-      draggable={true}
+      draggable={sprintActive}
       onDragStart={(e) => {
+        if (!sprintActive) {
+          e.preventDefault();
+          return;
+        }
         e.stopPropagation();
         onDragStart(item.id, "sprint");
       }}
@@ -504,6 +521,7 @@ function SprintItem({
         group flex items-center gap-2 px-3 py-2 rounded-lg transition-all bg-white border border-gray-200
         hover:bg-gray-50
         ${isDragOver ? "bg-blue-50 border-2 border-blue-300" : ""}
+        ${!sprintActive ? "opacity-60" : ""}
       `}
     >
       <div className="flex items-center gap-1 cursor-grab" title="Déplacer">
@@ -521,6 +539,7 @@ function SprintItem({
           onStatusChange={(newStatus: Status) =>
             onStatusChange(item.id, newStatus)
           }
+          disabled={!sprintActive}
         />
       )}
 
@@ -573,8 +592,196 @@ function SprintItem({
   );
 }
 
-// Composant ProjectBacklogList
-function ProjectBacklogList({
+// Modal Historique des Sprints
+function SprintHistoryModal({
+  isOpen,
+  onClose,
+  sprints,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  sprints: any[];
+}) {
+  const [selectedSprint, setSelectedSprint] = useState<any>(null);
+  const [viewingItems, setViewingItems] = useState<any[]>([]);
+
+  if (!isOpen) return null;
+
+  const handleViewSprint = async (sprint: any) => {
+    setSelectedSprint(sprint);
+    try {
+      const res = await fetch(`/api/sprints/${sprint.id}/items`);
+      const items = await res.json();
+      setViewingItems(items);
+    } catch (error) {
+      console.error("Erreur chargement items:", error);
+    }
+  };
+
+  const handleBack = () => {
+    setSelectedSprint(null);
+    setViewingItems([]);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-blue-100 text-blue-700";
+      case "done":
+        return "bg-emerald-100 text-emerald-700";
+      case "cancelled":
+        return "bg-red-100 text-red-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "active":
+        return "Actif";
+      case "done":
+        return "Terminé";
+      case "cancelled":
+        return "Annulé";
+      default:
+        return status;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {selectedSprint
+              ? `Sprint: ${selectedSprint.name}`
+              : "Historique des Sprints"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {selectedSprint ? (
+            <div>
+              <button
+                onClick={handleBack}
+                className="mb-4 text-blue-500 hover:text-blue-600 flex items-center gap-1"
+              >
+                ← Retour à l`&apos;historique
+              </button>
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <strong>Statut:</strong>{" "}
+                  <span
+                    className={`inline-flex px-2 py-0.5 rounded-full text-xs ${getStatusColor(selectedSprint.status)}`}
+                  >
+                    {getStatusLabel(selectedSprint.status)}
+                  </span>
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  <strong>Créé le:</strong>{" "}
+                  {new Date(selectedSprint.createdAt).toLocaleDateString(
+                    "fr-FR",
+                  )}
+                </p>
+                {selectedSprint.endedAt && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    <strong>Terminé le:</strong>{" "}
+                    {new Date(selectedSprint.endedAt).toLocaleDateString(
+                      "fr-FR",
+                    )}
+                  </p>
+                )}
+                <p className="text-sm text-gray-600 mt-1">
+                  <strong>Nombre d`&apos;items:</strong> {viewingItems.length}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-medium text-gray-700 mb-2">
+                  Items du Sprint:
+                </h3>
+                {viewingItems.length === 0 ? (
+                  <p className="text-gray-400 text-sm">Aucun item</p>
+                ) : (
+                  viewingItems.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      className="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400 w-6">
+                          {idx + 1}
+                        </span>
+                        <span className="text-sm text-gray-700">
+                          {item.title}
+                        </span>
+                      </div>
+                      <StatusDropdown
+                        status={item.status}
+                        onStatusChange={() => {}}
+                        disabled={true}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {sprints.length === 0 ? (
+                <p className="text-center text-gray-400 py-8">
+                  Aucun sprint dans l&apos;historique
+                </p>
+              ) : (
+                sprints.map((sprint) => (
+                  <div
+                    key={sprint.id}
+                    onClick={() => handleViewSprint(sprint)}
+                    className="flex justify-between items-center p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-800">{sprint.name}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Créé le{" "}
+                        {new Date(sprint.createdAt).toLocaleDateString("fr-FR")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`inline-flex px-2 py-0.5 rounded-full text-xs ${getStatusColor(sprint.status)}`}
+                      >
+                        {getStatusLabel(sprint.status)}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 border-t flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Fermer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Composant ProductBacklogList
+function ProductBacklogList({
   items,
   onAddRoot,
   onEdit,
@@ -587,6 +794,7 @@ function ProjectBacklogList({
   onAssignToSprint,
   sprintItemIds,
   onStatusChange,
+  sprintActive,
 }: any) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -652,10 +860,10 @@ function ProjectBacklogList({
       <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
           <Folder className="w-5 h-5 text-amber-500" />
-          Project Backlog
+          Product Backlog
         </h2>
         <button
-          onClick={() => onAddRoot("project")}
+          onClick={() => onAddRoot("product")}
           className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
           title="Ajouter un item backlog"
         >
@@ -669,7 +877,7 @@ function ProjectBacklogList({
             <Folder className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>Aucun item backlog</p>
             <button
-              onClick={() => onAddRoot("project")}
+              onClick={() => onAddRoot("product")}
               className="mt-3 text-sm text-blue-500 hover:text-blue-600"
             >
               + Ajouter un item backlog
@@ -679,7 +887,7 @@ function ProjectBacklogList({
           <div className="space-y-1">
             {items.map((node: BacklogNode) => (
               <div key={node.id} className="relative">
-                <ProjectTreeNode
+                <ProductTreeNode
                   node={node}
                   level={0}
                   expandedNodes={expandedNodes}
@@ -697,6 +905,7 @@ function ProjectBacklogList({
                   onAssignToSprint={onAssignToSprint}
                   isInSprint={sprintItemIds?.has(node.id)}
                   onStatusChange={onStatusChange}
+                  sprintActive={sprintActive}
                 />
                 {highlightTarget === node.id && (
                   <div
@@ -736,8 +945,9 @@ function SprintBacklogList({
   onMoveDown,
   onReorder,
   onStatusChange,
+  sprintActive,
+  canCloseSprint,
   onCloseSprint,
-  sprintStatus,
 }: any) {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [dragItem, setDragItem] = useState<{
@@ -762,14 +972,12 @@ function SprintBacklogList({
     if (e) e.preventDefault();
     setDragOverId(null);
     if (!dragItem) return;
-    if (dragItem.sourceType === "project") {
-      // Venir du project backlog
-      const item = items.find((i: any) => i.id === dragItem.id);
-      if (item) {
-        onRemove(dragItem.id);
-      }
-    } else {
-      // Réorganisation interne
+
+    if (dragItem.sourceType === "product") {
+      // Venir du product backlog - l'item est déjà dans le sprint via assignToSprint
+      console.log("Item du product backlog à ajouter au sprint via le bouton");
+    } else if (dragItem.sourceType === "sprint" && dragItem.id !== targetId) {
+      // Réorganisation interne du sprint backlog
       const oldIndex = items.findIndex((i: any) => i.id === dragItem.id);
       const newIndex = items.findIndex((i: any) => i.id === targetId);
       if (oldIndex !== -1 && newIndex !== -1) {
@@ -787,10 +995,6 @@ function SprintBacklogList({
     setDragItem(null);
   };
 
-  const canClose = items.every(
-    (item: any) => item.status === "done" || item.status === "cancelled",
-  );
-
   return (
     <div className="w-1/2 bg-white flex flex-col">
       <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
@@ -803,31 +1007,23 @@ function SprintBacklogList({
             </span>
           )}
         </h2>
-        {items.length > 0 && (
+        {sprintActive && items.length > 0 && (
           <button
-            onClick={() => {
-              if (canClose) {
-                onCloseSprint();
-              } else {
-                alert(
-                  "Impossible de clôturer le sprint : tous les items doivent être 'Terminé' ou 'Annulé'.",
-                );
-              }
-            }}
+            onClick={onCloseSprint}
+            disabled={!canCloseSprint}
             className={`px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 transition-colors ${
-              canClose
+              canCloseSprint
                 ? "bg-emerald-500 text-white hover:bg-emerald-600"
                 : "bg-gray-200 text-gray-500 cursor-not-allowed"
             }`}
-            disabled={!canClose}
             title={
-              !canClose
+              !canCloseSprint
                 ? "Tous les items doivent être 'Terminé' ou 'Annulé'"
-                : "Clôturer le sprint"
+                : "Fermer le sprint"
             }
           >
             <Archive className="w-4 h-4" />
-            Clôturer le Sprint
+            Fermer le Sprint
           </button>
         )}
       </div>
@@ -838,7 +1034,7 @@ function SprintBacklogList({
             <Rocket className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>Aucun item dans le sprint</p>
             <p className="text-sm mt-1">
-              Affectez des items depuis le Project Backlog (bouton{" "}
+              Affectez des items depuis le Product Backlog (bouton{" "}
               <Rocket className="w-3 h-3 inline" />)
             </p>
           </div>
@@ -858,6 +1054,7 @@ function SprintBacklogList({
                 onDrop={handleDrop}
                 dragOverId={dragOverId}
                 onStatusChange={onStatusChange}
+                sprintActive={sprintActive}
               />
             ))}
           </div>
@@ -870,38 +1067,46 @@ function SprintBacklogList({
 // Page principale
 export default function BacklogsPage() {
   const router = useRouter();
-  const [projectBacklogs, setProjectBacklogs] = useState<BacklogNode[]>([]);
+  const [productBacklogs, setProductBacklogs] = useState<BacklogNode[]>([]);
   const [sprintItems, setSprintItems] = useState<BacklogNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [sprintId, setSprintId] = useState<string | null>(null);
-  const [sprintStatus, setSprintStatus] = useState<string>("active");
+  const [sprintStatus, setSprintStatus] = useState<string>("");
+  const [sprintName, setSprintName] = useState<string>("");
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [closedSprints, setClosedSprints] = useState<any[]>([]);
 
   const fetchBacklogs = useCallback(async () => {
     try {
-      // Récupérer tous les backlogs
-      const res = await fetch("/api/backlogs");
+      // Récupérer tous les backlogs de type "product"
+      const res = await fetch("/api/backlogs?type=product");
       const data = await res.json();
-
-      // Séparer project et sprint
-      const projects = data.filter((b: Backlog) => b.type === "project");
-      setProjectBacklogs(buildBacklogTree(projects));
+      setProductBacklogs(buildBacklogTree(data));
 
       // Récupérer le sprint actif
       const sprintRes = await fetch("/api/sprints/active");
       const sprint = await sprintRes.json();
 
-      if (sprint) {
+      if (sprint && sprint.status === "active") {
         setSprintId(sprint.id);
         setSprintStatus(sprint.status);
+        setSprintName(sprint.name);
 
         // Récupérer les items du sprint
         const sprintItemsRes = await fetch(`/api/sprints/${sprint.id}/items`);
         const sprintItemsData = await sprintItemsRes.json();
-        setSprintItems(sprintItemsData);
+        setSprintItems(sprintItemsData || []);
       } else {
         setSprintItems([]);
         setSprintId(null);
+        setSprintStatus("");
+        setSprintName("");
       }
+
+      // Récupérer l'historique des sprints fermés
+      const historyRes = await fetch("/api/sprints/closed");
+      const historyData = await historyRes.json();
+      setClosedSprints(historyData);
     } catch (error) {
       console.error("Erreur chargement backlogs:", error);
     } finally {
@@ -913,35 +1118,56 @@ export default function BacklogsPage() {
     fetchBacklogs();
   }, [fetchBacklogs]);
 
-  const assignToSprint = async (item: BacklogNode) => {
-    if (!sprintId) {
-      // Créer un nouveau sprint
-      const createRes = await fetch("/api/sprints", {
+  const openSprint = async () => {
+    const name = prompt(
+      "Nom du sprint:",
+      `Sprint ${new Date().toLocaleDateString("fr-FR")}`,
+    );
+    if (!name) return;
+
+    try {
+      const res = await fetch("/api/sprints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `Sprint du ${new Date().toLocaleDateString()}`,
-        }),
+        body: JSON.stringify({ name }),
       });
-      const newSprint = await createRes.json();
+      const newSprint = await res.json();
       setSprintId(newSprint.id);
       setSprintStatus("active");
+      setSprintName(newSprint.name);
+      setSprintItems([]);
+      await fetchBacklogs();
+    } catch (error) {
+      console.error("Erreur ouverture sprint:", error);
+    }
+  };
 
-      // Ajouter l'item
-      await fetch(`/api/sprints/${newSprint.id}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ backlogId: item.id, position: 0 }),
-      });
-    } else {
-      // Vérifier si déjà dans le sprint
-      const alreadyInSprint = sprintItems.some((i) => i.id === item.id);
-      if (alreadyInSprint) {
-        alert("Cet item est déjà dans le sprint");
-        return;
+  const assignToSprint = async (item: BacklogNode) => {
+    if (!sprintId) {
+      alert("Aucun sprint actif. Veuillez d'abord ouvrir un sprint.");
+      return;
+    }
+
+    const alreadyInSprint = sprintItems.some((i) => i.id === item.id);
+    if (alreadyInSprint) {
+      alert("Cet item est déjà dans le sprint");
+      return;
+    }
+
+    try {
+      // Calculer le nouveau statut de l'item
+      const newStatus = item.status === "ready" ? "active" : item.status;
+
+      // Mettre à jour le statut si nécessaire
+      if (newStatus !== item.status) {
+        await fetch(`/api/backlogs/${item.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        });
       }
 
-      // Ajouter à la fin
+      // Ajouter à la fin du sprint
       await fetch(`/api/sprints/${sprintId}/items`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -950,9 +1176,11 @@ export default function BacklogsPage() {
           position: sprintItems.length,
         }),
       });
-    }
 
-    await fetchBacklogs();
+      await fetchBacklogs();
+    } catch (error) {
+      console.error("Erreur assignation:", error);
+    }
   };
 
   const removeFromSprint = async (itemId: string) => {
@@ -1012,20 +1240,37 @@ export default function BacklogsPage() {
 
   const closeSprint = async () => {
     if (!sprintId) return;
+
+    // Vérifier si tous les items sont clôturés (done ou cancelled)
     const canClose = sprintItems.every(
       (item) => item.status === "done" || item.status === "cancelled",
     );
+
     if (!canClose) {
       alert(
         "Impossible de clôturer le sprint : tous les items doivent être 'Terminé' ou 'Annulé'.",
       );
       return;
     }
-    await fetch(`/api/sprints/${sprintId}/close`, { method: "POST" });
+
+    await fetch(`/api/sprints/${sprintId}/close`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
     setSprintId(null);
     setSprintItems([]);
+    setSprintStatus("");
+    setSprintName("");
     await fetchBacklogs();
   };
+
+  const canCloseSprint =
+    sprintItems.length > 0 &&
+    sprintItems.every(
+      (item) => item.status === "done" || item.status === "cancelled",
+    );
 
   const deleteBacklog = async (
     id: string,
@@ -1056,7 +1301,7 @@ export default function BacklogsPage() {
   const moveBetweenLists = async (itemIds: string[], targetType: string) => {
     for (const id of itemIds) {
       if (targetType === "sprint") {
-        const item = projectBacklogs
+        const item = productBacklogs
           .flatMap((n) => {
             const flatten = (nodes: BacklogNode[]): BacklogNode[] => {
               let result: BacklogNode[] = [];
@@ -1094,7 +1339,7 @@ export default function BacklogsPage() {
       return;
     }
 
-    const list = projectBacklogs;
+    const list = productBacklogs;
     const flatItems: BacklogNode[] = [];
     const flatten = (nodes: BacklogNode[]) => {
       nodes.forEach((node) => {
@@ -1122,7 +1367,7 @@ export default function BacklogsPage() {
       return;
     }
 
-    const list = projectBacklogs;
+    const list = productBacklogs;
     const flatItems: BacklogNode[] = [];
     const flatten = (nodes: BacklogNode[]) => {
       nodes.forEach((node) => {
@@ -1165,19 +1410,48 @@ export default function BacklogsPage() {
     );
   }
 
+  const sprintActive = sprintId !== null && sprintStatus === "active";
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <div className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
-        <h1 className="text-xl font-semibold text-gray-800">Backlogs</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Gérez vos items de développement. Les items &quot;Prêt&quot; peuvent
-          être affectés au sprint.
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-xl font-semibold text-gray-800">Backlogs</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Gérez vos items de développement. Les items &quot;Prêt&quot;
+              peuvent être affectés au sprint.
+            </p>
+            {sprintActive && (
+              <p className="text-sm text-purple-600 mt-1">
+                Sprint actif: <strong>{sprintName}</strong>
+              </p>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
+            >
+              <History className="w-4 h-4" />
+              Historique
+            </button>
+            {!sprintActive ? (
+              <button
+                onClick={openSprint}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+              >
+                <Rocket className="w-4 h-4" />
+                Ouvrir un Sprint
+              </button>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <ProjectBacklogList
-          items={projectBacklogs}
+        <ProductBacklogList
+          items={productBacklogs}
           onAddRoot={(type: string) => {
             router.push(`/backlogs/new?type=${type}`);
           }}
@@ -1191,12 +1465,13 @@ export default function BacklogsPage() {
             );
           }}
           onHighlight={updateHighlight}
-          onMoveUp={(id: string) => moveUp(id, "project")}
-          onMoveDown={(id: string) => moveDown(id, "project")}
+          onMoveUp={(id: string) => moveUp(id, "product")}
+          onMoveDown={(id: string) => moveDown(id, "product")}
           onMoveBetweenLists={moveBetweenLists}
           onAssignToSprint={assignToSprint}
           sprintItemIds={new Set(sprintItems.map((i) => i.id))}
           onStatusChange={updateStatus}
+          sprintActive={sprintActive}
         />
 
         <SprintBacklogList
@@ -1209,10 +1484,17 @@ export default function BacklogsPage() {
           onMoveDown={(id: string) => moveSprintItemDown(id)}
           onReorder={reorderSprintItems}
           onStatusChange={updateStatus}
+          sprintActive={sprintActive}
+          canCloseSprint={canCloseSprint}
           onCloseSprint={closeSprint}
-          sprintStatus={sprintStatus}
         />
       </div>
+
+      <SprintHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        sprints={closedSprints}
+      />
     </div>
   );
 }

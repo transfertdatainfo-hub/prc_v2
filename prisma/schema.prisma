@@ -80,7 +80,6 @@ model Backlog {
   id          String    @id @default(cuid())
   title       String
   backlogType String    @default("task") @map("backlog_type")
-  type        String
   description String?   @db.Text
   position    Int       @default(0)
   parentId    String?   @map("parent_id")

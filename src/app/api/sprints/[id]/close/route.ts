@@ -1,46 +1,51 @@
+// src/app/api/sprints/[id]/close/route.ts
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 const userId = 'user-1';
 
-// POST - Clôturer un sprint
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Récupérer le sprint
+    // Vérifier que le sprint existe et appartient à l'utilisateur
     const sprint = await prisma.sprint.findFirst({
-      where: { id: params.id, userId },
-      include: {
-        items: {
-          include: { backlog: true }
-        }
-      }
+      where: { id: params.id, userId }
     });
 
     if (!sprint) {
       return NextResponse.json({ error: 'Sprint non trouvé' }, { status: 404 });
     }
 
-    // Vérifier que tous les items sont terminés ou annulés
-    const allFinished = sprint.items.every(
-      item => item.backlog.status === 'done' || item.backlog.status === 'cancelled'
+    if (sprint.status !== 'active') {
+      return NextResponse.json({ error: 'Le sprint n\'est pas actif' }, { status: 400 });
+    }
+
+    // Vérifier que tous les items sont clôturés
+    const sprintItems = await prisma.sprintItem.findMany({
+      where: { sprintId: params.id },
+      include: { backlog: true }
+    });
+
+    const allClosed = sprintItems.every(
+      si => si.backlog.status === 'done' || si.backlog.status === 'cancelled'
     );
 
-    if (!allFinished) {
+    if (!allClosed) {
       return NextResponse.json(
-        { error: 'Tous les items doivent être "Terminé" ou "Annulé" pour clôturer le sprint' },
+        { error: 'Tous les items doivent être terminés ou annulés' },
         { status: 400 }
       );
     }
 
-    // Déterminer le statut final du sprint
-    const hasDone = sprint.items.some(item => item.backlog.status === 'done');
-    const finalStatus = hasDone ? 'completed' : 'cancelled';
+    // Calculer le statut final côté serveur
+    // Si au moins un item est "done" → sprint "done", sinon "cancelled"
+    const hasDone = sprintItems.some(si => si.backlog.status === 'done');
+    const finalStatus = hasDone ? 'done' : 'cancelled';
 
-    // Mettre à jour le sprint
-    await prisma.sprint.update({
+    const updatedSprint = await prisma.sprint.update({
       where: { id: params.id },
       data: {
         status: finalStatus,
@@ -48,9 +53,9 @@ export async function POST(
       }
     });
 
-    return NextResponse.json({ success: true, status: finalStatus });
+    return NextResponse.json(updatedSprint);
   } catch (error) {
-    console.error('Erreur POST:', error);
+    console.error('Erreur POST /api/sprints/[id]/close:', error);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
