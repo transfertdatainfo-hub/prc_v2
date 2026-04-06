@@ -555,16 +555,18 @@ function SprintItem({
           <Edit2 className="w-3 h-3" />
         </button>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(item.id);
-          }}
-          className="p-1 text-gray-400 hover:text-red-500 rounded"
-          title="Retirer du Sprint"
-        >
-          <X className="w-3 h-3" />
-        </button>
+        {item.status === "active" && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(item.id);
+            }}
+            className="p-1 text-gray-400 hover:text-red-500 rounded"
+            title="Retirer du Sprint"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
 
         <button
           onClick={(e) => {
@@ -1185,6 +1187,20 @@ export default function BacklogsPage() {
 
   const removeFromSprint = async (itemId: string) => {
     if (!sprintId) return;
+
+    // Trouver l'item dans le sprint pour connaître son statut
+    const item = sprintItems.find((i) => i.id === itemId);
+    if (!item) return;
+
+    // Remettre le statut à "ready" si l'item était "active"
+    if (item.status === "active") {
+      await fetch(`/api/backlogs/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "ready" }),
+      });
+    }
+
     await fetch(`/api/sprints/${sprintId}/items/${itemId}`, {
       method: "DELETE",
     });
