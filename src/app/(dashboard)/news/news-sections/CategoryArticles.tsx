@@ -14,6 +14,7 @@ import {
   Newspaper,
 } from "lucide-react";
 import { useState } from "react";
+import { HighlightText } from "@/components/prc/HighlightText";
 
 interface CategoryArticlesProps {
   selectedNode: CategoryNode | null;
@@ -158,13 +159,15 @@ export default function CategoryArticles({
 
                 {/* Titre */}
                 <h2 className="text-xl font-semibold text-gray-800 mb-3">
-                  {article.title}
+                  <HighlightText text={article.title} query={localSearch} />
                 </h2>
 
-                {/* Description */}
                 {article.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3">
-                    {article.description}
+                    <HighlightText
+                      text={article.description}
+                      query={localSearch}
+                    />
                   </p>
                 )}
 

@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Filters } from "@/types/Filters";
+import { HighlightText } from "@/components/prc/HighlightText";
 
 interface FeedsViewProps {
   feeds: RSSFeed[];
@@ -68,6 +69,9 @@ export default function FeedsView({
           <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
             <Rss className="w-5 h-5" />
             Mes flux RSS
+            <span className="text-sm font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              {filteredFeedsByMedia.length}
+            </span>
           </h2>
           {filters.sourceId && (
             <p className="text-sm text-blue-600 mt-1 flex items-center gap-2 ml-4">
@@ -307,13 +311,15 @@ export default function FeedsView({
 
                   {/* Titre de l'article */}
                   <h3 className="font-medium text-gray-800 mb-2 text-lg">
-                    {article.title}
+                    <HighlightText text={article.title} query={searchQuery} />
                   </h3>
 
-                  {/* Description (si existe) */}
                   {article.description && (
                     <p className="text-sm text-gray-600 mb-3 line-clamp-3">
-                      {article.description}
+                      <HighlightText
+                        text={article.description}
+                        query={searchQuery}
+                      />
                     </p>
                   )}
 

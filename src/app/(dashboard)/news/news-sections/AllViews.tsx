@@ -13,6 +13,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Filters } from "@/types/Filters";
+import { HighlightText } from "@/components/prc/HighlightText";
 
 interface AllViewProps {
   articles: Article[];
@@ -197,12 +198,15 @@ export default function AllView({
                 </div>
 
                 <h2 className="text-xl font-semibold text-gray-800 mb-3">
-                  {article.title}
+                  <HighlightText text={article.title} query={searchQuery} />
                 </h2>
 
                 {article.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3">
-                    {article.description}
+                    <HighlightText
+                      text={article.description}
+                      query={searchQuery}
+                    />
                   </p>
                 )}
 

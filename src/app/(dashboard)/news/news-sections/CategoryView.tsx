@@ -25,6 +25,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Source } from "@/types/Source";
+import { HighlightText } from "@/components/prc/HighlightText";
 
 // Clés pour sessionStorage
 const STORAGE_KEYS = {
@@ -297,7 +298,7 @@ function NodeArticles({
               )}
               {selectedNode.children.length > 0 && (
                 <p className="text-sm text-gray-500 mt-1">
-                  {selectedNode.children.length} sous-élément(s)
+                  {selectedNode.children.length} flux
                 </p>
               )}
             </div>
@@ -403,12 +404,15 @@ function NodeArticles({
                 </div>
 
                 <h2 className="text-xl font-semibold text-gray-800 mb-3">
-                  {article.title}
+                  <HighlightText text={article.title} query={searchQuery} />
                 </h2>
 
                 {article.description && (
                   <p className="text-gray-600 mb-4 line-clamp-3">
-                    {article.description}
+                    <HighlightText
+                      text={article.description}
+                      query={searchQuery}
+                    />
                   </p>
                 )}
 
@@ -473,6 +477,7 @@ function TreeNode({
   setEditingNodeId,
   editingName,
   setEditingName,
+  searchQuery,
 }: any) {
   const isExpanded = expandedNodes.has(node.id);
   const isEditing = editingNodeId === node.id;
@@ -562,12 +567,12 @@ function TreeNode({
             }}
             onBlur={handleRename}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+            className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm text-black"
             autoFocus
           />
         ) : (
           <span className="flex-1 text-sm text-gray-700">
-            {node.title}
+            <HighlightText text={node.title} query={searchQuery} />
             {node.url && (
               <span className="text-xs text-green-600 ml-2 truncate max-w-xs inline-block">
                 📡
@@ -656,6 +661,7 @@ function TreeNode({
               setEditingNodeId={setEditingNodeId}
               editingName={editingName}
               setEditingName={setEditingName}
+              searchQuery={searchQuery}
             />
           ))}
         </div>
@@ -1174,6 +1180,7 @@ export default function CategoryView({
                   setEditingNodeId={setEditingNodeId}
                   editingName={editingName}
                   setEditingName={setEditingName}
+                  searchQuery={searchQuery}
                 />
               ))}
             </div>
