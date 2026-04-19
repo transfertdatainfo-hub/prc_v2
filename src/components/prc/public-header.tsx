@@ -1,3 +1,5 @@
+//src\components\prc\public-header.tsx
+
 import Link from "next/link";
 
 export function PublicHeader() {

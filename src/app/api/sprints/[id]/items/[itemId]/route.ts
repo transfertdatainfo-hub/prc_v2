@@ -1,3 +1,5 @@
+//src\app\api\sprints\[id]\items\[itemId]\route.ts
+
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 

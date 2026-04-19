@@ -6,9 +6,8 @@ import {
   LineChart,
   Newspaper,
   BarChart3,
-  User,
   Wallet,
-  LogOut,
+  CheckCircle,
 } from "lucide-react";
 
 const items = [
@@ -17,6 +16,7 @@ const items = [
   { label: "Portefeuilles", href: "/portefeuilles", icon: Wallet },
   { label: "Marchés & Indices", href: "/indices", icon: BarChart3 },
   { label: "Stratégie", href: "/strategy", icon: BarChart3 },
+  { label: "Gestion des tâches", href: "/backlogs", icon: CheckCircle },
 ];
 
 export function Sidebar() {

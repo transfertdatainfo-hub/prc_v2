@@ -1,3 +1,5 @@
+//src\components\prc\public-footer.tsx
+
 export function PublicFooter() {
   return (
     <footer className="w-full border-t border-prc-primary/10 bg-prc-background">
