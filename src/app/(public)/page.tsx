@@ -2,8 +2,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 import {
   ArrowRight,
   Check,
@@ -30,10 +31,14 @@ import {
   Bell,
   Target,
   CheckSquare,
+  LogOut,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
   // Témoignages
   const testimonials = [
@@ -182,6 +187,11 @@ export default function LandingPage() {
     setMobileMenuOpen(false);
   };
 
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    window.location.href = "/";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
       {/* ==================== NAVIGATION ==================== */}
@@ -230,18 +240,41 @@ export default function LandingPage() {
               >
                 Mode démo
               </Link>
-              <Link
-                href="/auth/login"
-                className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
-              >
-                Connexion
-              </Link>
-              <Link
-                href="/auth/register"
-                className="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all shadow-sm hover:shadow-md"
-              >
-                S&apos;inscrire
-              </Link>
+
+              {/* Liens conditionnels selon connexion */}
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Déconnexion
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/auth/login"
+                    className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+                  >
+                    Connexion
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="px-5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all shadow-sm hover:shadow-md"
+                  >
+                    S&apos;inscrire
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile menu button */}
@@ -264,40 +297,62 @@ export default function LandingPage() {
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => scrollToSection("features")}
-                className="text-gray-600 py-2"
+                className="text-gray-600 py-2 text-left"
               >
                 Fonctionnalités
               </button>
               <button
                 onClick={() => scrollToSection("alert-system")}
-                className="text-gray-600 py-2"
+                className="text-gray-600 py-2 text-left"
               >
                 Système d&apos;alerte
               </button>
               <button
                 onClick={() => scrollToSection("pricing")}
-                className="text-gray-600 py-2"
+                className="text-gray-600 py-2 text-left"
               >
                 Tarifs
               </button>
               <button
                 onClick={() => scrollToSection("testimonials")}
-                className="text-gray-600 py-2"
+                className="text-gray-600 py-2 text-left"
               >
                 Témoignages
               </button>
               <Link href="/free" className="text-gray-600 py-2">
                 Mode démo
               </Link>
-              <Link href="/auth/login" className="text-gray-600 py-2">
-                Connexion
-              </Link>
-              <Link
-                href="/auth/register"
-                className="text-center bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl py-3 mt-2"
-              >
-                S&apos;inscrire gratuitement
-              </Link>
+
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-2 text-gray-600 py-2"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 text-red-600 py-2 text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Déconnexion
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/login" className="text-gray-600 py-2">
+                    Connexion
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="text-center bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl py-3 mt-2"
+                  >
+                    S&apos;inscrire gratuitement
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}

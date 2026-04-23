@@ -835,9 +835,7 @@ export default function CategoryView({
 
   // Puis charger les flux (après que les filtres soient chargés)
   useEffect(() => {
-    //if (interestFilters.length > 0 || !isRestoring) {
     fetchFeeds();
-    //}
   }, [fetchFeeds]);
 
   // Intervalle de rafraîchissement sans recharger la sélection
@@ -864,7 +862,7 @@ export default function CategoryView({
       } catch (error) {
         console.error("Erreur rafraîchissement:", error);
       }
-    }, 30000); // 30 secondes au lieu de 5
+    }, 30000);
 
     return () => {
       if (refreshIntervalRef.current) {
@@ -1106,15 +1104,38 @@ export default function CategoryView({
   return (
     <div className="flex-1 flex overflow-hidden">
       <div className="w-[30%] bg-white border-r border-gray-200 flex flex-col">
+        {/* En-tête avec titre, recherche et bouton + sur une seule ligne */}
         <div className="px-4 py-3 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2 flex-shrink-0">
               <span>📁</span>
               Catégories
             </h2>
+
+            {/* Champ de recherche - occupe tout l'espace disponible */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Rechercher une catégorie..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Bouton ajouter */}
             <button
               onClick={() => setShowAddModal(true)}
-              className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+              className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0"
               title="Ajouter une catégorie"
             >
               <Plus className="w-5 h-5" />
@@ -1122,19 +1143,7 @@ export default function CategoryView({
           </div>
         </div>
 
-        <div className="p-4 border-b">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Rechercher..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            />
-          </div>
-        </div>
-
+        {/* Arborescence des catégories - prend tout l'espace restant */}
         <div className="flex-1 overflow-y-auto p-4">
           {loadingTree ? (
             <div className="text-center py-8 text-gray-400">Chargement...</div>
@@ -1184,30 +1193,6 @@ export default function CategoryView({
                 />
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Sélecteur de filtre */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Filtre personnalisé
-          </label>
-          <select
-            value={filters.activeInterestFilters[0] || ""}
-            onChange={(e) => handleFilterSelect(e.target.value || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
-          >
-            <option value="">Aucun filtre</option>
-            {interestFilters.map((filter) => (
-              <option key={filter.id} value={filter.id}>
-                {filter.label}
-              </option>
-            ))}
-          </select>
-          {interestFilters.length === 0 && (
-            <p className="text-xs text-gray-400 mt-1">
-              Aucun filtre. Configurez-en dans l&aposonglet Filtres.
-            </p>
           )}
         </div>
       </div>

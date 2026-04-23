@@ -535,6 +535,14 @@ export default function RSSReaderPage() {
         </div>
       </div>
 
+      {/* Filtres */}
+      <ActualitesFilters
+        filters={filters}
+        setFilters={setFilters}
+        viewMode={viewMode}
+        mediaOptions={mediaOptions}
+      />
+
       {/* Tabs design */}
       <div className="bg-white border-b border-gray-200 px-6 py-0">
         <div className="max-w-7xl mx-auto">
@@ -544,7 +552,7 @@ export default function RSSReaderPage() {
                 setViewMode("category");
                 setSelectedFeed(null);
               }}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                 viewMode === "category"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -554,14 +562,11 @@ export default function RSSReaderPage() {
                 <Newspaper className="w-4 h-4" />
                 Par catégorie
               </span>
-              {viewMode === "category" && (
-                <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
-              )}
             </button>
 
             <button
               onClick={() => setViewMode("feeds")}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                 viewMode === "feeds"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -571,9 +576,6 @@ export default function RSSReaderPage() {
                 <Rss className="w-4 h-4" />
                 Par flux RSS
               </span>
-              {viewMode === "feeds" && (
-                <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
-              )}
             </button>
 
             <button
@@ -581,7 +583,7 @@ export default function RSSReaderPage() {
                 setViewMode("all");
                 setSelectedFeed(null);
               }}
-              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors relative ${
+              className={`py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                 viewMode === "all"
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -591,21 +593,10 @@ export default function RSSReaderPage() {
                 <Rss className="w-4 h-4" />
                 Tous les articles
               </span>
-              {viewMode === "all" && (
-                <span className="absolute -top-1 -right-2 w-2 h-2 bg-blue-500 rounded-full"></span>
-              )}
             </button>
           </div>
         </div>
       </div>
-
-      {/* Filtres */}
-      <ActualitesFilters
-        filters={filters}
-        setFilters={setFilters}
-        viewMode={viewMode}
-        mediaOptions={mediaOptions}
-      />
 
       {/* Contenu principal */}
       <div className="flex-1 flex overflow-hidden">
